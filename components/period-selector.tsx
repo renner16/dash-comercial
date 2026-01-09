@@ -180,28 +180,31 @@ export function PeriodSelector({
                 }
               }}
               locale="pt-BR"
-              dateFormat="'Semana' w"
+              dateFormat="'Semana' w 'de' MMMM yyyy"
               showWeekNumbers
-              filterDate={(date) => {
-                // Mostrar apenas dias do mês selecionado
-                return date.getMonth() === mes - 1 && date.getFullYear() === ano
+              openToDate={mes && ano ? new Date(ano, mes - 1, 1) : new Date()}
+              onMonthChange={(date) => {
+                // Atualizar mês e ano quando o usuário navega no calendário
+                if (onMesChange && onAnoChange) {
+                  onMesChange(date.getMonth() + 1)
+                  onAnoChange(date.getFullYear())
+                }
               }}
-              minDate={new Date(ano, mes - 1, 1)}
-              maxDate={new Date(ano, mes, 0)}
               className={cn(
                 "flex h-10 w-[180px] sm:w-[220px] rounded-md border border-input bg-background px-3 py-2 text-sm",
                 "ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2",
                 "focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
                 "cursor-pointer"
               )}
-              placeholderText="Selecione uma semana"
+              placeholderText="Clique para selecionar uma semana"
               calendarClassName="week-picker"
+              showMonthYearPicker={false}
             />
           </div>
         )}
 
-        {/* Seletor de Mês (aparece em mensal e semanal) */}
-        {(tipoVisao === 'mensal' || tipoVisao === 'semanal') && (
+        {/* Seletor de Mês (aparece apenas em mensal) */}
+        {tipoVisao === 'mensal' && (
           <Select 
             value={mes?.toString() || ''} 
             onValueChange={(v) => onMesChange(parseInt(v))}
@@ -219,8 +222,8 @@ export function PeriodSelector({
           </Select>
         )}
 
-        {/* Seletor de Ano (aparece em semanal, mensal e anual) */}
-        {(tipoVisao === 'semanal' || tipoVisao === 'mensal' || tipoVisao === 'anual') && (
+        {/* Seletor de Ano (aparece em mensal e anual) */}
+        {(tipoVisao === 'mensal' || tipoVisao === 'anual') && (
           <Select value={ano.toString()} onValueChange={(v) => onAnoChange(parseInt(v))}>
             <SelectTrigger className="w-[100px]">
               <SelectValue />
