@@ -96,7 +96,7 @@ export function RelatorioDialog({ open, onOpenChange, onSave, relatorio, vendedo
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="respostasEnviadas">Respostas Enviadas</Label>
+              <Label htmlFor="respostasEnviadas">Respostas Recebidas</Label>
               <Input
                 id="respostasEnviadas"
                 type="number"
