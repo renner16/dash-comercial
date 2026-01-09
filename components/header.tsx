@@ -13,6 +13,13 @@ export function Header() {
               src="/logo.png" 
               alt="Cultura Builder Logo" 
               className="h-8 sm:h-12 w-auto object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const fallback = document.createElement('div');
+                fallback.className = 'text-xl font-bold';
+                fallback.textContent = 'Cultura Builder';
+                e.currentTarget.parentElement?.appendChild(fallback);
+              }}
             />
           </div>
         </div>
