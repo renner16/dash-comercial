@@ -235,22 +235,6 @@ export function PeriodSelector({
           </Select>
         )}
       </div>
-
-      {/* Indicador visual do período selecionado */}
-      <div className="text-sm text-muted-foreground ml-2">
-        {tipoVisao === 'total'
-          ? 'Todos os períodos'
-          : tipoVisao === 'diario' && dia
-          ? formatarData(dia)
-          : tipoVisao === 'semanal' && mes && semana
-          ? `Semana ${semana} - ${meses.find(m => m.value === mes)?.label}/${ano}`
-          : tipoVisao === 'mensal' && mes 
-          ? `${meses.find(m => m.value === mes)?.label}/${ano}`
-          : tipoVisao === 'anual'
-          ? `Ano ${ano}`
-          : 'Selecione um período'
-        }
-      </div>
     </div>
   )
 }
