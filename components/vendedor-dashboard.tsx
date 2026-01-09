@@ -686,24 +686,6 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         </Button>
       </div>
 
-      {/* Tabela de Vendas */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Vendas do Período</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <VendasTable
-            vendas={vendasComComissao}
-            onEdit={(venda) => {
-              setVendaEdit(venda)
-              setVendaDialogOpen(true)
-            }}
-            onDelete={handleDeleteVenda}
-            showComissao
-          />
-        </CardContent>
-      </Card>
-
       {/* Seletor de Período do Gráfico */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Gráficos de Vendas</h3>
@@ -767,6 +749,24 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
           color="#f59e0b"
         />
       </div>
+
+      {/* Tabela de Vendas */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Vendas do Período</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <VendasTable
+            vendas={vendasComComissao}
+            onEdit={(venda) => {
+              setVendaEdit(venda)
+              setVendaDialogOpen(true)
+            }}
+            onDelete={handleDeleteVenda}
+            showComissao
+          />
+        </CardContent>
+      </Card>
 
       {/* Funil de Conversão */}
       <FunilConversao

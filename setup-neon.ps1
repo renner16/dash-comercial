@@ -90,3 +90,5 @@ Write-Host "💡 Dica: Use 'npx prisma studio' para visualizar o banco" -Foregro
 Write-Host ""
 
 
+
+

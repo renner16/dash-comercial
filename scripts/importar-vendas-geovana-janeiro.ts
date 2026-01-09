@@ -69,3 +69,5 @@ importarVendas(nomeVendedor)
     process.exit(1)
   })
 
+
+

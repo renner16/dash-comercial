@@ -35,16 +35,52 @@ export async function GET(request: NextRequest) {
       }
     } else if (ano) {
       if (mes && semana) {
-        // Visão semanal: filtrar por semana do mês (7 dias cada)
-        const inicioMes = new Date(parseInt(ano), parseInt(mes) - 1, 1)
+        // Visão semanal: filtrar por semana do mês (domingo a sábado)
         const semanaNum = parseInt(semana)
+        const anoNum = parseInt(ano)
+        const mesNum = parseInt(mes)
         
-        // Calcular o dia de início e fim da semana
-        const diaInicio = 1 + ((semanaNum - 1) * 7)
-        const diaFim = Math.min(diaInicio + 6, new Date(parseInt(ano), parseInt(mes), 0).getDate())
+        // Função auxiliar para calcular o intervalo de dias de uma semana
+        const calcularIntervaloSemana = (numeroSemana: number, mes: number, ano: number) => {
+          const primeiroDiaMes = new Date(ano, mes - 1, 1)
+          const diaDaSemanaInicio = primeiroDiaMes.getDay() // 0=domingo, 6=sábado
+          const diasNoMes = new Date(ano, mes, 0).getDate()
+          
+          let diaInicio = 1
+          let semanaAtual = 1
+          
+          // Encontrar o dia de início da semana selecionada
+          for (let dia = 1; dia <= diasNoMes; dia++) {
+            const data = new Date(ano, mes - 1, dia)
+            const diaDaSemana = data.getDay()
+            
+            if (semanaAtual === numeroSemana) {
+              diaInicio = dia
+              break
+            }
+            
+            if (diaDaSemana === 6) { // Sábado = fim da semana
+              semanaAtual++
+            }
+          }
+          
+          // Encontrar o dia final da semana (sábado)
+          let diaFim = diaInicio
+          for (let dia = diaInicio; dia <= diasNoMes; dia++) {
+            const data = new Date(ano, mes - 1, dia)
+            diaFim = dia
+            if (data.getDay() === 6) { // Sábado
+              break
+            }
+          }
+          
+          return { diaInicio, diaFim }
+        }
         
-        const startDate = new Date(parseInt(ano), parseInt(mes) - 1, diaInicio, 0, 0, 0)
-        const endDate = new Date(parseInt(ano), parseInt(mes) - 1, diaFim, 23, 59, 59)
+        const { diaInicio, diaFim } = calcularIntervaloSemana(semanaNum, mesNum, anoNum)
+        
+        const startDate = new Date(anoNum, mesNum - 1, diaInicio, 0, 0, 0)
+        const endDate = new Date(anoNum, mesNum - 1, diaFim, 23, 59, 59)
         
         where.data = {
           gte: startDate,

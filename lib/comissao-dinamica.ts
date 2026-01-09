@@ -152,3 +152,5 @@ export async function calcularRemuneracaoTotalDinamica(
   return plano.salarioFixo + comissao
 }
 
+
+

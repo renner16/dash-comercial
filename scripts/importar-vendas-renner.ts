@@ -112,3 +112,5 @@ importarVendas()
     process.exit(1)
   })
 
+
+

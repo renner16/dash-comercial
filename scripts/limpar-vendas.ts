@@ -34,3 +34,5 @@ limparVendas()
     process.exit(1)
   })
 
+
+
