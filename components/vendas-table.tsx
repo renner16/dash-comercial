@@ -51,7 +51,7 @@ export function VendasTable({ vendas, onEdit, onDelete, showComissao = false }: 
 
       <div className="rounded-md border">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[800px]">
             <thead className="bg-muted/50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">

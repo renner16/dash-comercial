@@ -260,7 +260,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       </div>
 
       {/* KPIs */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
         <KPICard
           title="Faturamento"
           value={formatCurrency(faturamento)}
@@ -305,7 +305,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
 
       {/* KPIs de Leads - Visão Diária */}
       {tipoVisao === 'diario' && (
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -382,16 +382,16 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       )}
 
       {/* Ações */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 sm:gap-3">
         <Button 
           onClick={() => {
             setVendaEdit(null)
             setVendaDialogOpen(true)
           }}
-          className="gap-2"
+          className="gap-1 sm:gap-2 text-sm"
         >
           <Plus className="w-4 h-4" />
-          Nova Venda
+          <span className="hidden xs:inline">Nova </span>Venda
         </Button>
         <Button 
           onClick={() => {
@@ -441,7 +441,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       </Card>
 
       {/* Gráficos de Vendas */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
         <SimpleLineChart
           title="Faturamento por Dia"
           data={chartDataFaturamento}
@@ -455,7 +455,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       </div>
 
       {/* Gráficos de Relatórios */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
         <SimpleLineChart
           title="Leads Recebidos"
           data={chartDataLeads}

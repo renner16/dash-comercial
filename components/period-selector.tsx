@@ -52,10 +52,10 @@ export function PeriodSelector({
   }
 
   return (
-    <div className="flex items-center gap-4 bg-card p-4 rounded-lg border">
-      <Calendar className="w-5 h-5 text-muted-foreground" />
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 bg-card p-3 sm:p-4 rounded-lg border w-full">
+      <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground hidden sm:block" />
       
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
         {/* Seletor de Tipo de Visão */}
         <Select value={tipoVisao} onValueChange={(v) => onTipoVisaoChange(v as 'diario' | 'semanal' | 'mensal' | 'anual' | 'total')}>
           <SelectTrigger className="w-[120px]">

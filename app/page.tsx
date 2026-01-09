@@ -48,16 +48,18 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="container mx-auto px-8 py-8">
-        <Tabs defaultValue="geral" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="geral">Geral</TabsTrigger>
-            {vendedores.map(vendedor => (
-              <TabsTrigger key={vendedor.id} value={vendedor.id}>
-                {vendedor.nome}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <Tabs defaultValue="geral" className="space-y-4 sm:space-y-6">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <TabsList className="inline-flex min-w-full sm:min-w-0 px-4 sm:px-0">
+              <TabsTrigger value="geral" className="whitespace-nowrap">Geral</TabsTrigger>
+              {vendedores.map(vendedor => (
+                <TabsTrigger key={vendedor.id} value={vendedor.id} className="whitespace-nowrap">
+                  {vendedor.nome}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           <TabsContent value="geral" className="space-y-6">
             <GeralDashboard vendedores={vendedores} />
