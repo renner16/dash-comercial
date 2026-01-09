@@ -1,8 +1,9 @@
 'use client'
 
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { ThemeToggle } from './theme-toggle'
+import { Button } from './ui/button'
 import { useState, useEffect } from 'react'
 
 export function Header() {
@@ -50,6 +51,16 @@ export function Header() {
         
         <div className="flex items-center gap-2 sm:gap-4">
           <ThemeToggle />
+          <Link href="/admin">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="flex items-center gap-1 sm:gap-2"
+            >
+              <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">ADM</span>
+            </Button>
+          </Link>
           <Link
             href="https://plano-carreira-vercel-3izbxmi3g-ygors-projects-4796f89e.vercel.app/"
             target="_blank"
