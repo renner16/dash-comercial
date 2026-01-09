@@ -2,6 +2,7 @@
 
 import { ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import { ThemeToggle } from './theme-toggle'
 
 export function Header() {
   return (
@@ -23,16 +24,19 @@ export function Header() {
           </div>
         </div>
         
-        <Link
-          href="https://plano-carreira-vercel-3izbxmi3g-ygors-projects-4796f89e.vercel.app/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <span className="hidden sm:inline">Plano de Carreira</span>
-          <span className="sm:hidden">Plano</span>
-          <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
-        </Link>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <ThemeToggle />
+          <Link
+            href="https://plano-carreira-vercel-3izbxmi3g-ygors-projects-4796f89e.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span className="hidden sm:inline">Plano de Carreira</span>
+            <span className="sm:hidden">Plano</span>
+            <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
+          </Link>
+        </div>
       </div>
     </header>
   )
