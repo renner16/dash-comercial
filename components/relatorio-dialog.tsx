@@ -84,7 +84,7 @@ export function RelatorioDialog({ open, onOpenChange, onSave, relatorio, vendedo
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="leadsRecebidos">Leads Recebidos</Label>
+              <Label htmlFor="leadsRecebidos" className="block h-10 flex items-center">Leads Recebidos</Label>
               <Input
                 id="leadsRecebidos"
                 type="number"
@@ -96,7 +96,7 @@ export function RelatorioDialog({ open, onOpenChange, onSave, relatorio, vendedo
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="respostasEnviadas">Respostas Recebidas</Label>
+              <Label htmlFor="respostasEnviadas" className="block h-10 flex items-center">Respostas Recebidas</Label>
               <Input
                 id="respostasEnviadas"
                 type="number"
@@ -108,7 +108,7 @@ export function RelatorioDialog({ open, onOpenChange, onSave, relatorio, vendedo
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vendas">Vendas</Label>
+              <Label htmlFor="vendas" className="block h-10 flex items-center">Vendas</Label>
               <Input
                 id="vendas"
                 type="number"
