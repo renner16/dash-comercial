@@ -77,4 +77,129 @@
   background: hsl(var(--muted-foreground) / 0.5);
 }
 
+/* React Day Picker Styles */
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: hsl(var(--primary));
+  --rdp-background-color: hsl(var(--primary) / 0.1);
+  margin: 0;
+}
+
+.rdp-months {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rdp-month {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rdp-caption {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 0.25rem;
+  position: relative;
+}
+
+.rdp-caption_label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.rdp-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.rdp-nav_button {
+  position: absolute;
+}
+
+.rdp-nav_button_previous {
+  left: 0.25rem;
+}
+
+.rdp-nav_button_next {
+  right: 0.25rem;
+}
+
+.rdp-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rdp-head_row {
+  display: flex;
+}
+
+.rdp-head_cell {
+  color: hsl(var(--muted-foreground));
+  width: var(--rdp-cell-size);
+  font-size: 0.8rem;
+  font-weight: normal;
+  text-align: center;
+}
+
+.rdp-row {
+  display: flex;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.rdp-cell {
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+  text-align: center;
+  font-size: 0.875rem;
+  padding: 0;
+  position: relative;
+}
+
+.rdp-day {
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+  padding: 0;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.rdp-day:hover:not(.rdp-day_disabled):not(.rdp-day_selected) {
+  background-color: hsl(var(--accent));
+}
+
+.rdp-day_selected {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.rdp-day_selected:hover {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.rdp-day_today:not(.rdp-day_selected) {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  font-weight: 500;
+}
+
+.rdp-day_outside {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+}
+
+.rdp-day_disabled {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 
