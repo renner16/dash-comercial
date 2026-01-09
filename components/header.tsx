@@ -7,25 +7,19 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 sm:px-8">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-3">
-            <div className="relative flex items-center">
-              <img 
-                src="/logo.png?v=2" 
-                alt="Cultura Builder Logo" 
-                className="h-8 sm:h-12 w-auto object-contain"
-                style={{ maxWidth: '200px' }}
-                onLoad={() => console.log('Logo carregada com sucesso!')}
-                onError={(e) => {
-                  console.error('Erro ao carregar logo');
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold">Cultura Builder</h1>
-              <p className="text-xs text-muted-foreground">Sales Ops</p>
-            </div>
+        <div className="flex items-center">
+          <div className="relative flex items-center">
+            <img 
+              src="/logo.png?v=2" 
+              alt="Cultura Builder Logo" 
+              className="h-8 sm:h-12 w-auto object-contain"
+              style={{ maxWidth: '200px' }}
+              onLoad={() => console.log('Logo carregada com sucesso!')}
+              onError={(e) => {
+                console.error('Erro ao carregar logo');
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
         </div>
         
