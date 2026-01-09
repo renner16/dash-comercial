@@ -48,8 +48,8 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-        <Tabs defaultValue="geral" className="space-y-4 sm:space-y-6">
+      <main className="container mx-auto px-4 sm:px-8 py-6 sm:py-8">
+        <Tabs defaultValue="geral" className="space-y-6">
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <TabsList className="inline-flex min-w-full sm:min-w-0 px-4 sm:px-0">
               <TabsTrigger value="geral" className="whitespace-nowrap">Geral</TabsTrigger>

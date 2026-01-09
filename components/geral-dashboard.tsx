@@ -199,7 +199,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       </div>
 
       {/* KPIs Gerais - SEM COMISSÃO */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <KPICard
           title="Faturamento Total"
           value={formatCurrency(faturamentoTotal)}
@@ -221,7 +221,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 
       {/* KPIs de Leads - Visão Diária */}
       {tipoVisao === 'diario' && (
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -279,7 +279,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       )}
 
       {/* Gráficos de Performance do Time */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         <SimpleLineChart
           title="Faturamento do Time ao Longo do Mês"
           data={chartDataFaturamento}
@@ -293,7 +293,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       </div>
 
       {/* Gráficos de Atividade do Time */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         <SimpleLineChart
           title="Leads Recebidos (Time)"
           data={chartDataLeads}
