@@ -85,6 +85,17 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   const taxaResposta = totalLeadsRecebidos > 0 
     ? ((totalRespostasEnviadas / totalLeadsRecebidos) * 100).toFixed(1)
     : '0'
+  
+  // Texto do período para os KPIs de leads
+  const textoPeriodo = tipoVisao === 'diario' 
+    ? 'no dia' 
+    : tipoVisao === 'semanal'
+    ? 'na semana'
+    : tipoVisao === 'mensal'
+    ? 'no mês'
+    : tipoVisao === 'anual'
+    ? 'no ano'
+    : 'no total'
 
   // Filtrar vendas para a tabela
   const vendasFiltradas = filtroVendedor === 'todos' 
@@ -219,64 +230,62 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
         />
       </div>
 
-      {/* KPIs de Leads - Visão Diária */}
-      {tipoVisao === 'diario' && (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Leads Recebidos
-              </CardTitle>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{totalLeadsRecebidos}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Total do time no dia
-              </p>
-            </CardContent>
-          </Card>
+      {/* KPIs de Leads - Sempre Visível */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Leads Recebidos
+            </CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{totalLeadsRecebidos}</div>
+            <p className="text-xs text-muted-foreground mt-1 capitalize">
+              Total do time {textoPeriodo}
+            </p>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Respostas Enviadas
-              </CardTitle>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{totalRespostasEnviadas}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Total do time no dia
-              </p>
-            </CardContent>
-          </Card>
+        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Respostas Enviadas
+            </CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{totalRespostasEnviadas}</div>
+            <p className="text-xs text-muted-foreground mt-1 capitalize">
+              Total do time {textoPeriodo}
+            </p>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Taxa de Resposta
-              </CardTitle>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-              </svg>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{taxaResposta}%</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Respostas / Leads recebidos
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Taxa de Resposta
+            </CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{taxaResposta}%</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Respostas / Leads recebidos
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Gráficos de Performance do Time */}
       <div className={`grid gap-4 ${tipoVisao === 'total' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
