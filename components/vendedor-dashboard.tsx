@@ -29,7 +29,9 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const [ano, setAno] = useState(hoje.getFullYear())
   const [dia, setDia] = useState<string | null>(hoje.toISOString().split('T')[0])
   const [semana, setSemana] = useState<number | null>(1)
-  const [tipoVisao, setTipoVisao] = useState<'diario' | 'semanal' | 'mensal' | 'anual' | 'total'>('mensal')
+  const [tipoVisao, setTipoVisao] = useState<'diario' | 'semanal' | 'mensal' | 'anual' | 'total' | 'personalizado'>('mensal')
+  const [dataInicio, setDataInicio] = useState<string | null>(null)
+  const [dataFim, setDataFim] = useState<string | null>(null)
   const [periodoGrafico, setPeriodoGrafico] = useState<'auto' | 'dia' | 'semana' | 'mes'>('auto')
   const [vendas, setVendas] = useState<any[]>([]) // Dados do período exato (para KPIs e tabela)
   const [relatorios, setRelatorios] = useState<any[]>([]) // Dados do período exato
@@ -86,6 +88,12 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         // KPIs e Gráficos: mesmo ano
         params += `&ano=${ano}`
         paramsGraficos += `&ano=${ano}`
+      } else if (tipoVisao === 'personalizado' && dataInicio && dataFim) {
+        // Período personalizado: usar dataInicio e dataFim
+        const inicio = new Date(dataInicio + 'T00:00:00')
+        const fim = new Date(dataFim + 'T23:59:59')
+        params += `&dataInicio=${inicio.toISOString()}&dataFim=${fim.toISOString()}`
+        paramsGraficos = params // Usar mesmo período para gráficos
       }
       // Se tipoVisao === 'total', não adiciona nenhum filtro de período (KPIs e gráficos iguais)
       if (tipoVisao === 'total') {
@@ -118,7 +126,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
 
   useEffect(() => {
     carregarDados()
-  }, [mes, ano, dia, semana, tipoVisao, vendedor.id])
+  }, [mes, ano, dia, semana, tipoVisao, dataInicio, dataFim, vendedor.id])
 
   // Calcular KPIs
   const vendasConfirmadas = vendas.filter(v => v.status === 'CONFIRMADA')
@@ -140,7 +148,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
 
   // Determinar período real do gráfico
   const periodoReal = periodoGrafico === 'auto' 
-    ? (tipoVisao === 'semanal' ? 'semana' : tipoVisao === 'mensal' ? 'mes' : tipoVisao === 'diario' ? 'dia' : tipoVisao === 'anual' || tipoVisao === 'total' ? 'mes' : 'dia')
+    ? (tipoVisao === 'semanal' ? 'semana' : tipoVisao === 'mensal' ? 'mes' : tipoVisao === 'diario' ? 'dia' : tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado' ? 'mes' : 'dia')
     : periodoGrafico === 'semana' ? 'semana' : periodoGrafico === 'mes' ? 'mes' : 'dia'
 
   // Filtrar vendas confirmadas dos dados de gráficos
@@ -320,11 +328,15 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         dia={dia}
         semana={semana}
         tipoVisao={tipoVisao}
+        dataInicio={dataInicio}
+        dataFim={dataFim}
         onMesChange={setMes} 
         onAnoChange={setAno}
         onDiaChange={setDia}
         onSemanaChange={setSemana}
         onTipoVisaoChange={setTipoVisao}
+        onDataInicioChange={setDataInicio}
+        onDataFimChange={setDataFim}
       />
 
       {/* KPIs */}

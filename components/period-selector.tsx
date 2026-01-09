@@ -15,12 +15,16 @@ interface PeriodSelectorProps {
   ano: number
   dia: string | null
   semana?: number | null
-  tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total'
+  tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total' | 'personalizado'
+  dataInicio?: string | null
+  dataFim?: string | null
   onMesChange: (mes: number | null) => void
   onAnoChange: (ano: number) => void
   onDiaChange: (dia: string | null) => void
   onSemanaChange?: (semana: number | null) => void
-  onTipoVisaoChange: (tipo: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total') => void
+  onTipoVisaoChange: (tipo: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total' | 'personalizado') => void
+  onDataInicioChange?: (data: string | null) => void
+  onDataFimChange?: (data: string | null) => void
 }
 
 export function PeriodSelector({ 
@@ -29,11 +33,15 @@ export function PeriodSelector({
   dia,
   semana,
   tipoVisao,
+  dataInicio,
+  dataFim,
   onMesChange, 
   onAnoChange,
   onDiaChange,
   onSemanaChange,
-  onTipoVisaoChange 
+  onTipoVisaoChange,
+  onDataInicioChange,
+  onDataFimChange
 }: PeriodSelectorProps) {
   const meses = [
     { value: 1, label: 'Janeiro' },
@@ -96,8 +104,8 @@ export function PeriodSelector({
       
       <div className="flex flex-wrap items-center gap-2">
         {/* Seletor de Tipo de Visão */}
-        <Select value={tipoVisao} onValueChange={(v) => onTipoVisaoChange(v as 'diario' | 'semanal' | 'mensal' | 'anual' | 'total')}>
-          <SelectTrigger className="w-[120px]">
+        <Select value={tipoVisao} onValueChange={(v) => onTipoVisaoChange(v as 'diario' | 'semanal' | 'mensal' | 'anual' | 'total' | 'personalizado')}>
+          <SelectTrigger className="w-[140px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -106,6 +114,7 @@ export function PeriodSelector({
             <SelectItem value="mensal">Mensal</SelectItem>
             <SelectItem value="anual">Anual</SelectItem>
             <SelectItem value="total">Total</SelectItem>
+            <SelectItem value="personalizado">Personalizado</SelectItem>
           </SelectContent>
         </Select>
 
@@ -242,6 +251,58 @@ export function PeriodSelector({
               ))}
             </SelectContent>
           </Select>
+        )}
+
+        {/* Seletor de Período Personalizado (data início e fim) */}
+        {tipoVisao === 'personalizado' && (
+          <>
+            <div className="relative">
+              <DatePicker
+                selected={dataInicio ? new Date(dataInicio + 'T00:00:00') : null}
+                onChange={(date) => {
+                  if (date && onDataInicioChange) {
+                    const year = date.getFullYear()
+                    const month = String(date.getMonth() + 1).padStart(2, '0')
+                    const day = String(date.getDate()).padStart(2, '0')
+                    onDataInicioChange(`${year}-${month}-${day}`)
+                  }
+                }}
+                locale="pt-BR"
+                dateFormat="dd/MM/yyyy"
+                className={cn(
+                  "flex h-10 w-[140px] sm:w-[160px] rounded-md border border-input bg-background px-3 py-2 text-sm",
+                  "ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2",
+                  "focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                  "cursor-pointer"
+                )}
+                placeholderText="Data início"
+              />
+            </div>
+            <span className="text-muted-foreground hidden sm:inline">até</span>
+            <div className="relative">
+              <DatePicker
+                selected={dataFim ? new Date(dataFim + 'T00:00:00') : null}
+                onChange={(date) => {
+                  if (date && onDataFimChange) {
+                    const year = date.getFullYear()
+                    const month = String(date.getMonth() + 1).padStart(2, '0')
+                    const day = String(date.getDate()).padStart(2, '0')
+                    onDataFimChange(`${year}-${month}-${day}`)
+                  }
+                }}
+                locale="pt-BR"
+                dateFormat="dd/MM/yyyy"
+                minDate={dataInicio ? new Date(dataInicio + 'T00:00:00') : undefined}
+                className={cn(
+                  "flex h-10 w-[140px] sm:w-[160px] rounded-md border border-input bg-background px-3 py-2 text-sm",
+                  "ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2",
+                  "focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                  "cursor-pointer"
+                )}
+                placeholderText="Data fim"
+              />
+            </div>
+          </>
         )}
       </div>
     </div>
