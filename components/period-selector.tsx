@@ -114,15 +114,15 @@ export function PeriodSelector({
             value={semana?.toString() || '1'} 
             onValueChange={(v) => onSemanaChange(parseInt(v))}
           >
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-[160px] sm:w-[180px]">
               <SelectValue placeholder="Semana" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">Semana 1</SelectItem>
-              <SelectItem value="2">Semana 2</SelectItem>
-              <SelectItem value="3">Semana 3</SelectItem>
-              <SelectItem value="4">Semana 4</SelectItem>
-              <SelectItem value="5">Semana 5</SelectItem>
+              <SelectItem value="1">Semana 1 (1-7)</SelectItem>
+              <SelectItem value="2">Semana 2 (8-14)</SelectItem>
+              <SelectItem value="3">Semana 3 (15-21)</SelectItem>
+              <SelectItem value="4">Semana 4 (22-28)</SelectItem>
+              <SelectItem value="5">Semana 5 (29-31)</SelectItem>
             </SelectContent>
           </Select>
         )}
