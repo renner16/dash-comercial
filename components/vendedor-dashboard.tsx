@@ -23,8 +23,9 @@ interface VendedorDashboardProps {
 
 export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const hoje = new Date()
-  const [mes, setMes] = useState(hoje.getMonth() + 1)
+  const [mes, setMes] = useState<number | null>(hoje.getMonth() + 1)
   const [ano, setAno] = useState(hoje.getFullYear())
+  const [tipoVisao, setTipoVisao] = useState<'mensal' | 'anual'>('mensal')
   const [vendas, setVendas] = useState<any[]>([])
   const [relatorios, setRelatorios] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,9 +37,12 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const carregarDados = async () => {
     setLoading(true)
     try {
+      // Se for visão anual, não passa o mês na query
+      const mesParam = tipoVisao === 'mensal' && mes ? `&mes=${mes}` : ''
+      
       const [vendasRes, relatoriosRes] = await Promise.all([
-        fetch(`/api/vendas?vendedorId=${vendedor.id}&mes=${mes}&ano=${ano}`),
-        fetch(`/api/relatorios?vendedorId=${vendedor.id}&mes=${mes}&ano=${ano}`)
+        fetch(`/api/vendas?vendedorId=${vendedor.id}${mesParam}&ano=${ano}`),
+        fetch(`/api/relatorios?vendedorId=${vendedor.id}${mesParam}&ano=${ano}`)
       ])
       
       const vendasData = await vendasRes.json()
@@ -55,7 +59,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
 
   useEffect(() => {
     carregarDados()
-  }, [mes, ano, vendedor.id])
+  }, [mes, ano, tipoVisao, vendedor.id])
 
   // Calcular KPIs
   const vendasConfirmadas = vendas.filter(v => v.status === 'CONFIRMADA')
@@ -158,7 +162,14 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
             Cargo: <span className="font-medium">{vendedor.cargo}</span>
           </p>
         </div>
-        <PeriodSelector mes={mes} ano={ano} onMesChange={setMes} onAnoChange={setAno} />
+        <PeriodSelector 
+          mes={mes} 
+          ano={ano} 
+          tipoVisao={tipoVisao}
+          onMesChange={setMes} 
+          onAnoChange={setAno}
+          onTipoVisaoChange={setTipoVisao}
+        />
       </div>
 
       {/* KPIs */}

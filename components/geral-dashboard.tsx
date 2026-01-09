@@ -20,8 +20,9 @@ interface GeralDashboardProps {
 
 export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   const hoje = new Date()
-  const [mes, setMes] = useState(hoje.getMonth() + 1)
+  const [mes, setMes] = useState<number | null>(hoje.getMonth() + 1)
   const [ano, setAno] = useState(hoje.getFullYear())
+  const [tipoVisao, setTipoVisao] = useState<'mensal' | 'anual'>('mensal')
   const [vendas, setVendas] = useState<any[]>([])
   const [relatorios, setRelatorios] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -30,9 +31,12 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   const carregarDados = async () => {
     setLoading(true)
     try {
+      // Se for visão anual, não passa o mês na query
+      const mesParam = tipoVisao === 'mensal' && mes ? `mes=${mes}&` : ''
+      
       const [vendasRes, relatoriosRes] = await Promise.all([
-        fetch(`/api/vendas?mes=${mes}&ano=${ano}`),
-        fetch(`/api/relatorios?mes=${mes}&ano=${ano}`)
+        fetch(`/api/vendas?${mesParam}ano=${ano}`),
+        fetch(`/api/relatorios?${mesParam}ano=${ano}`)
       ])
       
       const vendasData = await vendasRes.json()
@@ -49,7 +53,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 
   useEffect(() => {
     carregarDados()
-  }, [mes, ano])
+  }, [mes, ano, tipoVisao])
 
   // Calcular KPIs gerais (apenas CONFIRMADAS)
   const vendasConfirmadas = vendas.filter(v => v.status === 'CONFIRMADA')
@@ -87,7 +91,14 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
             Consolidado de todos os vendedores
           </p>
         </div>
-        <PeriodSelector mes={mes} ano={ano} onMesChange={setMes} onAnoChange={setAno} />
+        <PeriodSelector 
+          mes={mes} 
+          ano={ano} 
+          tipoVisao={tipoVisao}
+          onMesChange={setMes} 
+          onAnoChange={setAno}
+          onTipoVisaoChange={setTipoVisao}
+        />
       </div>
 
       {/* KPIs Gerais - SEM COMISSÃO */}

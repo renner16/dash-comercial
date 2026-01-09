@@ -14,12 +14,23 @@ export async function GET(request: NextRequest) {
       where.vendedorId = vendedorId
     }
 
-    if (mes && ano) {
-      const startDate = new Date(parseInt(ano), parseInt(mes) - 1, 1)
-      const endDate = new Date(parseInt(ano), parseInt(mes), 0, 23, 59, 59)
-      where.data = {
-        gte: startDate,
-        lte: endDate,
+    if (ano) {
+      if (mes) {
+        // Visão mensal: filtrar por mês específico
+        const startDate = new Date(parseInt(ano), parseInt(mes) - 1, 1)
+        const endDate = new Date(parseInt(ano), parseInt(mes), 0, 23, 59, 59)
+        where.data = {
+          gte: startDate,
+          lte: endDate,
+        }
+      } else {
+        // Visão anual: filtrar por ano inteiro
+        const startDate = new Date(parseInt(ano), 0, 1)
+        const endDate = new Date(parseInt(ano), 11, 31, 23, 59, 59)
+        where.data = {
+          gte: startDate,
+          lte: endDate,
+        }
       }
     }
 
