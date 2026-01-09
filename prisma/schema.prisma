@@ -55,3 +55,19 @@ model RelatoriosDiarios {
   @@index([data])
 }
 
+model PlanoCarreira {
+  id              String   @id @default(uuid())
+  cargo           String   // JUNIOR, PLENO, SENIOR, GERENTE
+  salarioFixo     Float
+  percentuais     String   // JSON array: [0.02, 0.03, 0.04, 0.05]
+  dataVigencia    DateTime // Data a partir da qual este plano entra em vigor
+  ativo           Boolean  @default(true)
+  observacao      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([cargo])
+  @@index([dataVigencia])
+  @@index([ativo])
+}
+
