@@ -25,7 +25,8 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   const [mes, setMes] = useState<number | null>(hoje.getMonth() + 1)
   const [ano, setAno] = useState(hoje.getFullYear())
   const [dia, setDia] = useState<string | null>(hoje.toISOString().split('T')[0])
-  const [tipoVisao, setTipoVisao] = useState<'diario' | 'mensal' | 'anual'>('diario')
+  const [semana, setSemana] = useState<number | null>(1)
+  const [tipoVisao, setTipoVisao] = useState<'diario' | 'semanal' | 'mensal' | 'anual' | 'total'>('diario')
   const [vendas, setVendas] = useState<any[]>([])
   const [relatorios, setRelatorios] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,6 +40,9 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       if (tipoVisao === 'diario' && dia) {
         // Visão diária: busca por data específica
         params = `dia=${dia}`
+      } else if (tipoVisao === 'semanal' && mes && semana) {
+        // Visão semanal: busca por semana do mês
+        params = `mes=${mes}&ano=${ano}&semana=${semana}`
       } else if (tipoVisao === 'mensal' && mes) {
         // Visão mensal: busca por mês/ano
         params = `mes=${mes}&ano=${ano}`
@@ -46,6 +50,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
         // Visão anual: busca por ano
         params = `ano=${ano}`
       }
+      // Se tipoVisao === 'total', não adiciona nenhum filtro de período
       
       const [vendasRes, relatoriosRes] = await Promise.all([
         fetch(`/api/vendas?${params}`),
@@ -66,7 +71,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 
   useEffect(() => {
     carregarDados()
-  }, [mes, ano, dia, tipoVisao])
+  }, [mes, ano, dia, semana, tipoVisao])
 
   // Calcular KPIs gerais (apenas CONFIRMADAS)
   const vendasConfirmadas = vendas.filter(v => v.status === 'CONFIRMADA')
@@ -183,10 +188,12 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
           mes={mes} 
           ano={ano}
           dia={dia}
+          semana={semana}
           tipoVisao={tipoVisao}
           onMesChange={setMes} 
           onAnoChange={setAno}
           onDiaChange={setDia}
+          onSemanaChange={setSemana}
           onTipoVisaoChange={setTipoVisao}
         />
       </div>

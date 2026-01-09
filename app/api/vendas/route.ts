@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const mes = searchParams.get('mes')
     const ano = searchParams.get('ano')
     const dia = searchParams.get('dia')
+    const semana = searchParams.get('semana')
 
     let where: any = {}
 
@@ -25,7 +26,23 @@ export async function GET(request: NextRequest) {
         lte: endDate,
       }
     } else if (ano) {
-      if (mes) {
+      if (mes && semana) {
+        // Visão semanal: filtrar por semana do mês (7 dias cada)
+        const inicioMes = new Date(parseInt(ano), parseInt(mes) - 1, 1)
+        const semanaNum = parseInt(semana)
+        
+        // Calcular o dia de início e fim da semana
+        const diaInicio = 1 + ((semanaNum - 1) * 7)
+        const diaFim = Math.min(diaInicio + 6, new Date(parseInt(ano), parseInt(mes), 0).getDate())
+        
+        const startDate = new Date(parseInt(ano), parseInt(mes) - 1, diaInicio, 0, 0, 0)
+        const endDate = new Date(parseInt(ano), parseInt(mes) - 1, diaFim, 23, 59, 59)
+        
+        where.data = {
+          gte: startDate,
+          lte: endDate,
+        }
+      } else if (mes) {
         // Visão mensal: filtrar por mês específico
         const startDate = new Date(parseInt(ano), parseInt(mes) - 1, 1)
         const endDate = new Date(parseInt(ano), parseInt(mes), 0, 23, 59, 59)
@@ -43,6 +60,7 @@ export async function GET(request: NextRequest) {
         }
       }
     }
+    // Se nenhum filtro de período for fornecido, retorna todos os dados (visão "total")
 
     const vendas = await prisma.venda.findMany({
       where,
