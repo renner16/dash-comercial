@@ -25,7 +25,8 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const hoje = new Date()
   const [mes, setMes] = useState<number | null>(hoje.getMonth() + 1)
   const [ano, setAno] = useState(hoje.getFullYear())
-  const [tipoVisao, setTipoVisao] = useState<'mensal' | 'anual'>('mensal')
+  const [dia, setDia] = useState<string | null>(hoje.toISOString().split('T')[0])
+  const [tipoVisao, setTipoVisao] = useState<'diario' | 'mensal' | 'anual'>('mensal')
   const [vendas, setVendas] = useState<any[]>([])
   const [relatorios, setRelatorios] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,12 +38,22 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const carregarDados = async () => {
     setLoading(true)
     try {
-      // Se for visão anual, não passa o mês na query
-      const mesParam = tipoVisao === 'mensal' && mes ? `&mes=${mes}` : ''
+      let params = `vendedorId=${vendedor.id}`
+      
+      if (tipoVisao === 'diario' && dia) {
+        // Visão diária: busca por data específica
+        params += `&dia=${dia}`
+      } else if (tipoVisao === 'mensal' && mes) {
+        // Visão mensal: busca por mês/ano
+        params += `&mes=${mes}&ano=${ano}`
+      } else if (tipoVisao === 'anual') {
+        // Visão anual: busca por ano
+        params += `&ano=${ano}`
+      }
       
       const [vendasRes, relatoriosRes] = await Promise.all([
-        fetch(`/api/vendas?vendedorId=${vendedor.id}${mesParam}&ano=${ano}`),
-        fetch(`/api/relatorios?vendedorId=${vendedor.id}${mesParam}&ano=${ano}`)
+        fetch(`/api/vendas?${params}`),
+        fetch(`/api/relatorios?${params}`)
       ])
       
       const vendasData = await vendasRes.json()
@@ -59,7 +70,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
 
   useEffect(() => {
     carregarDados()
-  }, [mes, ano, tipoVisao, vendedor.id])
+  }, [mes, ano, dia, tipoVisao, vendedor.id])
 
   // Calcular KPIs
   const vendasConfirmadas = vendas.filter(v => v.status === 'CONFIRMADA')
@@ -91,6 +102,14 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     name: new Date(r.data).getDate().toString(),
     value: r.respostasEnviadas
   })).sort((a, b) => parseInt(a.name) - parseInt(b.name))
+
+  // Calcular dados de leads do dia (para visão diária)
+  const leadsRecebidosDia = relatorios.reduce((sum, r) => sum + r.leadsRecebidos, 0)
+  const respostasEnviadasDia = relatorios.reduce((sum, r) => sum + r.respostasEnviadas, 0)
+  const vendasDia = relatorios.reduce((sum, r) => sum + r.vendas, 0)
+  const taxaRespostaDia = leadsRecebidosDia > 0 
+    ? ((respostasEnviadasDia / leadsRecebidosDia) * 100).toFixed(1)
+    : '0'
 
   const handleSaveVenda = async (venda: any) => {
     try {
@@ -164,10 +183,12 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         </div>
         <PeriodSelector 
           mes={mes} 
-          ano={ano} 
+          ano={ano}
+          dia={dia}
           tipoVisao={tipoVisao}
           onMesChange={setMes} 
           onAnoChange={setAno}
+          onDiaChange={setDia}
           onTipoVisaoChange={setTipoVisao}
         />
       </div>
@@ -198,6 +219,84 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
           icon={Percent}
         />
       </div>
+
+      {/* KPIs de Leads - Visão Diária */}
+      {tipoVisao === 'diario' && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Leads Recebidos
+              </CardTitle>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{leadsRecebidosDia}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                No dia
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Respostas Enviadas
+              </CardTitle>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{respostasEnviadasDia}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                No dia
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Taxa de Resposta
+              </CardTitle>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{taxaRespostaDia}%</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Respostas / Leads
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Vendas do Dia
+              </CardTitle>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500">
+                <circle cx="9" cy="21" r="1"/>
+                <circle cx="20" cy="21" r="1"/>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+              </svg>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">{vendasDia}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Fechadas no dia
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Ações */}
       <div className="flex gap-2">

@@ -22,7 +22,8 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   const hoje = new Date()
   const [mes, setMes] = useState<number | null>(hoje.getMonth() + 1)
   const [ano, setAno] = useState(hoje.getFullYear())
-  const [tipoVisao, setTipoVisao] = useState<'mensal' | 'anual'>('mensal')
+  const [dia, setDia] = useState<string | null>(hoje.toISOString().split('T')[0])
+  const [tipoVisao, setTipoVisao] = useState<'diario' | 'mensal' | 'anual'>('diario')
   const [vendas, setVendas] = useState<any[]>([])
   const [relatorios, setRelatorios] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,12 +32,22 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   const carregarDados = async () => {
     setLoading(true)
     try {
-      // Se for visão anual, não passa o mês na query
-      const mesParam = tipoVisao === 'mensal' && mes ? `mes=${mes}&` : ''
+      let params = ''
+      
+      if (tipoVisao === 'diario' && dia) {
+        // Visão diária: busca por data específica
+        params = `dia=${dia}`
+      } else if (tipoVisao === 'mensal' && mes) {
+        // Visão mensal: busca por mês/ano
+        params = `mes=${mes}&ano=${ano}`
+      } else if (tipoVisao === 'anual') {
+        // Visão anual: busca por ano
+        params = `ano=${ano}`
+      }
       
       const [vendasRes, relatoriosRes] = await Promise.all([
-        fetch(`/api/vendas?${mesParam}ano=${ano}`),
-        fetch(`/api/relatorios?${mesParam}ano=${ano}`)
+        fetch(`/api/vendas?${params}`),
+        fetch(`/api/relatorios?${params}`)
       ])
       
       const vendasData = await vendasRes.json()
@@ -53,13 +64,20 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 
   useEffect(() => {
     carregarDados()
-  }, [mes, ano, tipoVisao])
+  }, [mes, ano, dia, tipoVisao])
 
   // Calcular KPIs gerais (apenas CONFIRMADAS)
   const vendasConfirmadas = vendas.filter(v => v.status === 'CONFIRMADA')
   const faturamentoTotal = vendasConfirmadas.reduce((sum, v) => sum + v.valor, 0)
   const qtdVendasTotal = vendasConfirmadas.length
   const ticketMedioGeral = qtdVendasTotal > 0 ? faturamentoTotal / qtdVendasTotal : 0
+
+  // Calcular dados de leads (soma de todos os vendedores)
+  const totalLeadsRecebidos = relatorios.reduce((sum, r) => sum + r.leadsRecebidos, 0)
+  const totalRespostasEnviadas = relatorios.reduce((sum, r) => sum + r.respostasEnviadas, 0)
+  const taxaResposta = totalLeadsRecebidos > 0 
+    ? ((totalRespostasEnviadas / totalLeadsRecebidos) * 100).toFixed(1)
+    : '0'
 
   // Filtrar vendas para a tabela
   const vendasFiltradas = filtroVendedor === 'todos' 
@@ -93,10 +111,12 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
         </div>
         <PeriodSelector 
           mes={mes} 
-          ano={ano} 
+          ano={ano}
+          dia={dia}
           tipoVisao={tipoVisao}
           onMesChange={setMes} 
           onAnoChange={setAno}
+          onDiaChange={setDia}
           onTipoVisaoChange={setTipoVisao}
         />
       </div>
@@ -121,6 +141,65 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
           icon={TrendingUp}
         />
       </div>
+
+      {/* KPIs de Leads - Visão Diária */}
+      {tipoVisao === 'diario' && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Leads Recebidos
+              </CardTitle>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{totalLeadsRecebidos}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Total do time no dia
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Respostas Enviadas
+              </CardTitle>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{totalRespostasEnviadas}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Total do time no dia
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Taxa de Resposta
+              </CardTitle>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{taxaResposta}%</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Respostas / Leads recebidos
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Gráficos de Performance do Time */}
       <div className="grid gap-4 md:grid-cols-2">
