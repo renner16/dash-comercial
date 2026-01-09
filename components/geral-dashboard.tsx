@@ -558,13 +558,59 @@ function prepararDadosChartVendas(
       dadosPorSemana[semana] += tipo === 'valor' ? v.valor : 1
     })
 
+    // Função auxiliar para calcular o intervalo de dias de uma semana
+    const getWeekRange = (numeroSemana: number, mes: number, ano: number) => {
+      const primeiroDiaMes = new Date(ano, mes - 1, 1)
+      const diasNoMes = new Date(ano, mes, 0).getDate()
+      const mesesAbrev = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+      
+      let diaInicio = 1
+      let semanaAtual = 1
+      
+      // Encontrar o dia de início da semana
+      for (let dia = 1; dia <= diasNoMes; dia++) {
+        const data = new Date(ano, mes - 1, dia)
+        
+        if (semanaAtual === numeroSemana) {
+          diaInicio = dia
+          break
+        }
+        
+        if (data.getDay() === 6) { // Sábado = fim da semana
+          semanaAtual++
+        }
+      }
+      
+      // Encontrar o dia final da semana
+      let diaFim = diaInicio
+      for (let dia = diaInicio; dia <= diasNoMes; dia++) {
+        const data = new Date(ano, mes - 1, dia)
+        diaFim = dia
+        if (data.getDay() === 6) { // Sábado
+          break
+        }
+      }
+      
+      const diaInicioStr = String(diaInicio).padStart(2, '0')
+      const diaFimStr = String(diaFim).padStart(2, '0')
+      const mesAbrev = mesesAbrev[mes - 1]
+      
+      return `${diaInicioStr}a${diaFimStr} ${mesAbrev}`
+    }
+
     return Object.entries(dadosPorSemana)
       .map(([semana, valor]) => ({
-        name: `Semana ${semana}`,
+        name: mesSelecionado && anoSelecionado 
+          ? getWeekRange(parseInt(semana), mesSelecionado, anoSelecionado)
+          : `Semana ${semana}`,
         value: valor,
         highlight: semanaSelecionada === parseInt(semana)
       }))
-      .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]))
+      .sort((a, b) => {
+        const semanaA = parseInt(a.name.includes('Semana') ? a.name.split(' ')[1] : a.name.split('a')[0])
+        const semanaB = parseInt(b.name.includes('Semana') ? b.name.split(' ')[1] : b.name.split('a')[0])
+        return semanaA - semanaB
+      })
   }
   
   // Para DIA, agrupa por DIA - mostrar TODOS os dias do mês
@@ -675,13 +721,59 @@ function prepararDadosChartRelatorios(
       dadosPorSemana[semana] += r[campo]
     })
 
+    // Função auxiliar para calcular o intervalo de dias de uma semana
+    const getWeekRange = (numeroSemana: number, mes: number, ano: number) => {
+      const primeiroDiaMes = new Date(ano, mes - 1, 1)
+      const diasNoMes = new Date(ano, mes, 0).getDate()
+      const mesesAbrev = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+      
+      let diaInicio = 1
+      let semanaAtual = 1
+      
+      // Encontrar o dia de início da semana
+      for (let dia = 1; dia <= diasNoMes; dia++) {
+        const data = new Date(ano, mes - 1, dia)
+        
+        if (semanaAtual === numeroSemana) {
+          diaInicio = dia
+          break
+        }
+        
+        if (data.getDay() === 6) { // Sábado = fim da semana
+          semanaAtual++
+        }
+      }
+      
+      // Encontrar o dia final da semana
+      let diaFim = diaInicio
+      for (let dia = diaInicio; dia <= diasNoMes; dia++) {
+        const data = new Date(ano, mes - 1, dia)
+        diaFim = dia
+        if (data.getDay() === 6) { // Sábado
+          break
+        }
+      }
+      
+      const diaInicioStr = String(diaInicio).padStart(2, '0')
+      const diaFimStr = String(diaFim).padStart(2, '0')
+      const mesAbrev = mesesAbrev[mes - 1]
+      
+      return `${diaInicioStr}a${diaFimStr} ${mesAbrev}`
+    }
+
     return Object.entries(dadosPorSemana)
       .map(([semana, valor]) => ({
-        name: `Semana ${semana}`,
+        name: mesSelecionado && anoSelecionado 
+          ? getWeekRange(parseInt(semana), mesSelecionado, anoSelecionado)
+          : `Semana ${semana}`,
         value: valor,
         highlight: semanaSelecionada === parseInt(semana)
       }))
-      .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]))
+      .sort((a, b) => {
+        const semanaA = parseInt(a.name.includes('Semana') ? a.name.split(' ')[1] : a.name.split('a')[0])
+        const semanaB = parseInt(b.name.includes('Semana') ? b.name.split(' ')[1] : b.name.split('a')[0])
+        return semanaA - semanaB
+      })
   }
   
   // Para DIA, agrupa por DIA - mostrar TODOS os dias do mês
