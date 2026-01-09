@@ -1,8 +1,13 @@
 'use client'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { Calendar } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
+import { Calendar as CalendarIcon } from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 
 interface PeriodSelectorProps {
   mes: number | null
@@ -53,7 +58,7 @@ export function PeriodSelector({
 
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 bg-card p-4 rounded-lg border">
-      <Calendar className="w-5 h-5 text-muted-foreground hidden sm:block" />
+      <CalendarIcon className="w-5 h-5 text-muted-foreground hidden sm:block" />
       
       <div className="flex flex-wrap items-center gap-2">
         {/* Seletor de Tipo de Visão */}
@@ -70,14 +75,37 @@ export function PeriodSelector({
           </SelectContent>
         </Select>
 
-        {/* Seletor de Data (só aparece se for visão diária) */}
+        {/* Seletor de Data com Calendário (só aparece se for visão diária) */}
         {tipoVisao === 'diario' && (
-          <Input
-            type="date"
-            value={dia || ''}
-            onChange={(e) => onDiaChange(e.target.value)}
-            className="w-[160px]"
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[200px] justify-start text-left font-normal",
+                  !dia && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dia ? format(new Date(dia + 'T00:00:00'), "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={dia ? new Date(dia + 'T00:00:00') : undefined}
+                onSelect={(date) => {
+                  if (date) {
+                    const year = date.getFullYear()
+                    const month = String(date.getMonth() + 1).padStart(2, '0')
+                    const day = String(date.getDate()).padStart(2, '0')
+                    onDiaChange(`${year}-${month}-${day}`)
+                  }
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         )}
 
         {/* Seletor de Semana (só aparece se for visão semanal) */}
