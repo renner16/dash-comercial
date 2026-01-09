@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { DollarSign, ShoppingCart, TrendingUp, Percent, Plus, Download } from 'lucide-react'
 import { KPICard } from '@/components/kpi-card'
 import { ProjecaoCard } from '@/components/projecao-card'
+import { FunilConversao } from '@/components/funil-conversao'
 import { VendasTable } from '@/components/vendas-table'
 import { VendaDialog } from '@/components/venda-dialog'
 import { RelatorioDialog } from '@/components/relatorio-dialog'
@@ -766,6 +767,13 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
           color="#f59e0b"
         />
       </div>
+
+      {/* Funil de Conversão */}
+      <FunilConversao
+        leadsRecebidos={leadsRecebidosPeriodo}
+        respostasEnviadas={respostasEnviadasPeriodo}
+        vendasFechadas={qtdVendas}
+      />
 
       {/* Dialogs */}
       <VendaDialog
