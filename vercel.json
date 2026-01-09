@@ -1,0 +1,7 @@
+{
+  "buildCommand": "prisma generate && prisma db push && next build",
+  "env": {
+    "SKIP_ENV_VALIDATION": "true"
+  }
+}
+
