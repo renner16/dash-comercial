@@ -373,18 +373,35 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 function prepararDadosChartVendas(vendas: any[], tipo: 'valor' | 'count', tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total') {
   // Se visão ANUAL ou TOTAL, agrupa por MÊS com ANO
   if (tipoVisao === 'anual' || tipoVisao === 'total') {
-    const dadosPorMesAno: Record<string, number> = {} // Formato: "2025-0", "2025-1", etc.
+    const dadosPorMesAno: Record<string, number> = {}
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
+    // Identificar todos os anos presentes nos dados
+    const anos = new Set<number>()
+    vendas.forEach(v => {
+      const ano = new Date(v.data).getFullYear()
+      anos.add(ano)
+    })
+    
+    // Se não houver dados, usar o ano atual
+    if (anos.size === 0) {
+      anos.add(new Date().getFullYear())
+    }
+    
+    // Inicializar TODOS os meses para todos os anos com 0
+    Array.from(anos).forEach(ano => {
+      for (let mes = 0; mes < 12; mes++) {
+        const chave = `${ano}-${mes}`
+        dadosPorMesAno[chave] = 0
+      }
+    })
+    
+    // Preencher com os dados reais
     vendas.forEach(v => {
       const data = new Date(v.data)
       const ano = data.getFullYear()
-      const mes = data.getMonth() // 0-11
+      const mes = data.getMonth()
       const chave = `${ano}-${mes}`
-      
-      if (!dadosPorMesAno[chave]) {
-        dadosPorMesAno[chave] = 0
-      }
       dadosPorMesAno[chave] += tipo === 'valor' ? v.valor : 1
     })
 
@@ -394,20 +411,32 @@ function prepararDadosChartVendas(vendas: any[], tipo: 'valor' | 'count', tipoVi
         return {
           name: `${mesesNome[parseInt(mes)]} ${ano}`,
           value: valor,
-          sortKey: parseInt(ano) * 100 + parseInt(mes) // Para ordenação
+          sortKey: parseInt(ano) * 100 + parseInt(mes)
         }
       })
       .sort((a, b) => a.sortKey - b.sortKey)
   }
   
-  // Para MENSAL ou outros, agrupa por DIA
+  // Para MENSAL/SEMANAL, agrupa por DIA - mostrar TODOS os dias do mês
   const dadosPorDia: Record<number, number> = {}
   
+  // Determinar o mês/ano para calcular quantos dias tem
+  let diasNoMes = 31
+  if (vendas.length > 0) {
+    const primeiraData = new Date(vendas[0].data)
+    const mes = primeiraData.getMonth()
+    const ano = primeiraData.getFullYear()
+    diasNoMes = new Date(ano, mes + 1, 0).getDate()
+  }
+  
+  // Inicializar TODOS os dias do mês com 0
+  for (let dia = 1; dia <= diasNoMes; dia++) {
+    dadosPorDia[dia] = 0
+  }
+  
+  // Preencher com os dados reais
   vendas.forEach(v => {
     const dia = new Date(v.data).getDate()
-    if (!dadosPorDia[dia]) {
-      dadosPorDia[dia] = 0
-    }
     dadosPorDia[dia] += tipo === 'valor' ? v.valor : 1
   })
 
@@ -422,18 +451,35 @@ function prepararDadosChartVendas(vendas: any[], tipo: 'valor' | 'count', tipoVi
 function prepararDadosChartRelatorios(relatorios: any[], campo: string, tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total') {
   // Se visão ANUAL ou TOTAL, agrupa por MÊS com ANO
   if (tipoVisao === 'anual' || tipoVisao === 'total') {
-    const dadosPorMesAno: Record<string, number> = {} // Formato: "2025-0", "2025-1", etc.
+    const dadosPorMesAno: Record<string, number> = {}
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
+    // Identificar todos os anos presentes nos dados
+    const anos = new Set<number>()
+    relatorios.forEach(r => {
+      const ano = new Date(r.data).getFullYear()
+      anos.add(ano)
+    })
+    
+    // Se não houver dados, usar o ano atual
+    if (anos.size === 0) {
+      anos.add(new Date().getFullYear())
+    }
+    
+    // Inicializar TODOS os meses para todos os anos com 0
+    Array.from(anos).forEach(ano => {
+      for (let mes = 0; mes < 12; mes++) {
+        const chave = `${ano}-${mes}`
+        dadosPorMesAno[chave] = 0
+      }
+    })
+    
+    // Preencher com os dados reais
     relatorios.forEach(r => {
       const data = new Date(r.data)
       const ano = data.getFullYear()
-      const mes = data.getMonth() // 0-11
+      const mes = data.getMonth()
       const chave = `${ano}-${mes}`
-      
-      if (!dadosPorMesAno[chave]) {
-        dadosPorMesAno[chave] = 0
-      }
       dadosPorMesAno[chave] += r[campo]
     })
 
@@ -443,21 +489,35 @@ function prepararDadosChartRelatorios(relatorios: any[], campo: string, tipoVisa
         return {
           name: `${mesesNome[parseInt(mes)]} ${ano}`,
           value: valor,
-          sortKey: parseInt(ano) * 100 + parseInt(mes) // Para ordenação
+          sortKey: parseInt(ano) * 100 + parseInt(mes)
         }
       })
       .sort((a, b) => a.sortKey - b.sortKey)
   }
   
-  // Para MENSAL ou outros, agrupa por DIA
+  // Para MENSAL/SEMANAL, agrupa por DIA - mostrar TODOS os dias do mês
   const dadosPorDia: Record<number, number> = {}
   
+  // Determinar o mês/ano para calcular quantos dias tem
+  let diasNoMes = 31
+  if (relatorios.length > 0) {
+    const primeiraData = new Date(relatorios[0].data)
+    const mes = primeiraData.getMonth()
+    const ano = primeiraData.getFullYear()
+    diasNoMes = new Date(ano, mes + 1, 0).getDate()
+  }
+  
+  // Inicializar TODOS os dias do mês com 0
+  for (let dia = 1; dia <= diasNoMes; dia++) {
+    dadosPorDia[dia] = 0
+  }
+  
+  // Preencher com os dados reais
   relatorios.forEach(r => {
     const dia = new Date(r.data).getDate()
-    if (!dadosPorDia[dia]) {
-      dadosPorDia[dia] = 0
+    if (dadosPorDia[dia] !== undefined) {
+      dadosPorDia[dia] += r[campo]
     }
-    dadosPorDia[dia] += r[campo]
   })
 
   return Object.entries(dadosPorDia)
