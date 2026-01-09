@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { DollarSign, ShoppingCart, TrendingUp, Percent, Plus } from 'lucide-react'
+import { DollarSign, ShoppingCart, TrendingUp, Percent, Plus, Download } from 'lucide-react'
 import { KPICard } from '@/components/kpi-card'
 import { VendasTable } from '@/components/vendas-table'
 import { VendaDialog } from '@/components/venda-dialog'
@@ -10,8 +10,9 @@ import { SimpleLineChart, SimpleBarChart } from '@/components/charts'
 import { PeriodSelector } from '@/components/period-selector'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { calcularComissao, getInfoFaixa, Cargo } from '@/lib/comissao'
+import { exportarParaCSV, formatarVendasParaExport, formatarRelatoriosParaExport } from '@/lib/export-utils'
 
 interface VendedorDashboardProps {
   vendedor: {
@@ -164,6 +165,62 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     }
   }
 
+  const handleExportarVendas = () => {
+    if (!vendas || vendas.length === 0) {
+      alert('Não há vendas para exportar!')
+      return
+    }
+
+    const vendasFormatadas = vendas.map(venda => ({
+      Data: formatDate(venda.data),
+      Nome: venda.nome,
+      Email: venda.email,
+      Valor: `R$ ${venda.valor.toFixed(2)}`,
+      Status: venda.status,
+      Observacao: venda.observacao || ''
+    }))
+
+    const periodo = tipoVisao === 'diario' 
+      ? dia?.split('-').reverse().join('-') 
+      : tipoVisao === 'mensal'
+      ? `${mes}-${ano}`
+      : `${ano}`
+
+    exportarParaCSV(
+      vendasFormatadas,
+      `vendas_${vendedor.nome.toLowerCase()}_${periodo}.csv`
+    )
+  }
+
+  const handleExportarRelatorios = () => {
+    if (!relatorios || relatorios.length === 0) {
+      alert('Não há relatórios para exportar!')
+      return
+    }
+
+    const relatoriosFormatados = relatorios.map(relatorio => ({
+      Data: formatDate(relatorio.data),
+      'Leads Recebidos': relatorio.leadsRecebidos,
+      'Respostas Enviadas': relatorio.respostasEnviadas,
+      'Vendas Realizadas': relatorio.vendasRealizadas,
+      'Taxa de Resposta (%)': relatorio.leadsRecebidos > 0 
+        ? ((relatorio.respostasEnviadas / relatorio.leadsRecebidos) * 100).toFixed(2)
+        : '0.00',
+      Observacao: relatorio.observacao || ''
+    }))
+
+    const periodo = tipoVisao === 'diario' 
+      ? dia?.split('-').reverse().join('-') 
+      : tipoVisao === 'mensal'
+      ? `${mes}-${ano}`
+      : `${ano}`
+
+    exportarParaCSV(
+      relatoriosFormatados,
+      `relatorios_${vendedor.nome.toLowerCase()}_${periodo}.csv`
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -299,7 +356,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       )}
 
       {/* Ações */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button 
           onClick={() => {
             setVendaEdit(null)
@@ -320,6 +377,22 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         >
           <Plus className="w-4 h-4" />
           Relatório Diário
+        </Button>
+        <Button 
+          onClick={handleExportarVendas}
+          variant="secondary"
+          className="gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Exportar Vendas
+        </Button>
+        <Button 
+          onClick={handleExportarRelatorios}
+          variant="secondary"
+          className="gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Exportar Relatórios
         </Button>
       </div>
 

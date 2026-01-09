@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { DollarSign, ShoppingCart, TrendingUp } from 'lucide-react'
+import { DollarSign, ShoppingCart, TrendingUp, Download } from 'lucide-react'
 import { KPICard } from '@/components/kpi-card'
 import { VendasTable } from '@/components/vendas-table'
 import { SimpleLineChart, SimpleBarChart } from '@/components/charts'
 import { PeriodSelector } from '@/components/period-selector'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatCurrency } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { formatCurrency, formatDate } from '@/lib/utils'
+import { exportarParaCSV } from '@/lib/export-utils'
 
 interface GeralDashboardProps {
   vendedores: Array<{
@@ -91,6 +93,74 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   // Preparar dados de relatórios (soma de todos os vendedores por dia)
   const chartDataLeads = prepararDadosChartRelatorios(relatorios, 'leadsRecebidos')
   const chartDataRespostas = prepararDadosChartRelatorios(relatorios, 'respostasEnviadas')
+
+  const handleExportarTodasVendas = () => {
+    const vendasParaExportar = filtroVendedor === 'todos' ? vendas : vendasFiltradas
+    
+    if (!vendasParaExportar || vendasParaExportar.length === 0) {
+      alert('Não há vendas para exportar!')
+      return
+    }
+
+    const vendasFormatadas = vendasParaExportar.map(venda => {
+      const vendedor = vendedores.find(v => v.id === venda.vendedorId)
+      return {
+        Data: formatDate(venda.data),
+        Vendedor: vendedor?.nome || 'N/A',
+        Nome: venda.nome,
+        Email: venda.email,
+        Valor: `R$ ${venda.valor.toFixed(2)}`,
+        Status: venda.status,
+        Observacao: venda.observacao || ''
+      }
+    })
+
+    const periodo = tipoVisao === 'diario' 
+      ? dia?.split('-').reverse().join('-') 
+      : tipoVisao === 'mensal'
+      ? `${mes}-${ano}`
+      : `${ano}`
+
+    const filtro = filtroVendedor === 'todos' ? 'todas' : vendedores.find(v => v.id === filtroVendedor)?.nome.toLowerCase()
+
+    exportarParaCSV(
+      vendasFormatadas,
+      `vendas_time_${filtro}_${periodo}.csv`
+    )
+  }
+
+  const handleExportarTodosRelatorios = () => {
+    if (!relatorios || relatorios.length === 0) {
+      alert('Não há relatórios para exportar!')
+      return
+    }
+
+    const relatoriosFormatados = relatorios.map(relatorio => {
+      const vendedor = vendedores.find(v => v.id === relatorio.vendedorId)
+      return {
+        Data: formatDate(relatorio.data),
+        Vendedor: vendedor?.nome || 'N/A',
+        'Leads Recebidos': relatorio.leadsRecebidos,
+        'Respostas Enviadas': relatorio.respostasEnviadas,
+        'Vendas Realizadas': relatorio.vendasRealizadas,
+        'Taxa de Resposta (%)': relatorio.leadsRecebidos > 0 
+          ? ((relatorio.respostasEnviadas / relatorio.leadsRecebidos) * 100).toFixed(2)
+          : '0.00',
+        Observacao: relatorio.observacao || ''
+      }
+    })
+
+    const periodo = tipoVisao === 'diario' 
+      ? dia?.split('-').reverse().join('-') 
+      : tipoVisao === 'mensal'
+      ? `${mes}-${ano}`
+      : `${ano}`
+
+    exportarParaCSV(
+      relatoriosFormatados,
+      `relatorios_time_${periodo}.csv`
+    )
+  }
 
   if (loading) {
     return (
@@ -232,9 +302,9 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       {/* Tabela de Todas as Vendas */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <CardTitle>Todas as Vendas do Período</CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">Filtrar por vendedor:</span>
               <Select value={filtroVendedor} onValueChange={setFiltroVendedor}>
                 <SelectTrigger className="w-[180px]">
@@ -249,6 +319,24 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
                   ))}
                 </SelectContent>
               </Select>
+              <Button 
+                onClick={handleExportarTodasVendas}
+                variant="secondary"
+                className="gap-2"
+                size="sm"
+              >
+                <Download className="w-4 h-4" />
+                Exportar Vendas
+              </Button>
+              <Button 
+                onClick={handleExportarTodosRelatorios}
+                variant="secondary"
+                className="gap-2"
+                size="sm"
+              >
+                <Download className="w-4 h-4" />
+                Exportar Relatórios
+              </Button>
             </div>
           </div>
         </CardHeader>
