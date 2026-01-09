@@ -65,3 +65,4 @@ export function getInfoFaixa(cargo: Cargo, faturamento: number) {
   }
 }
 
+

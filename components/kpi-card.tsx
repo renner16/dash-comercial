@@ -40,3 +40,4 @@ export function KPICard({ title, value, subtitle, icon: Icon, trend }: KPICardPr
   )
 }
 
+

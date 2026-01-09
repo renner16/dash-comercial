@@ -49,28 +49,29 @@ export default function Home() {
     <div className="min-h-screen">
       <Header />
       <main className="container mx-auto px-8 py-8">
-        <Tabs defaultValue={vendedores[0]?.id || 'geral'} className="space-y-6">
+        <Tabs defaultValue="geral" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="geral">Geral</TabsTrigger>
             {vendedores.map(vendedor => (
               <TabsTrigger key={vendedor.id} value={vendedor.id}>
                 {vendedor.nome}
               </TabsTrigger>
             ))}
-            <TabsTrigger value="geral">Geral</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="geral" className="space-y-6">
+            <GeralDashboard vendedores={vendedores} />
+          </TabsContent>
 
           {vendedores.map(vendedor => (
             <TabsContent key={vendedor.id} value={vendedor.id} className="space-y-6">
               <VendedorDashboard vendedor={vendedor} />
             </TabsContent>
           ))}
-
-          <TabsContent value="geral" className="space-y-6">
-            <GeralDashboard vendedores={vendedores} />
-          </TabsContent>
         </Tabs>
       </main>
     </div>
   )
 }
+
 

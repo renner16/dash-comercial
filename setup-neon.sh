@@ -88,3 +88,4 @@ echo ""
 echo "💡 Dica: Use 'npx prisma studio' para visualizar o banco"
 echo ""
 
+

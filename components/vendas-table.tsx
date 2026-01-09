@@ -155,3 +155,4 @@ export function VendasTable({ vendas, onEdit, onDelete, showComissao = false }: 
   )
 }
 
+

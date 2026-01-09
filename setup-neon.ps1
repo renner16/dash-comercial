@@ -89,3 +89,4 @@ Write-Host ""
 Write-Host "💡 Dica: Use 'npx prisma studio' para visualizar o banco" -ForegroundColor Gray
 Write-Host ""
 
+

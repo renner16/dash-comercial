@@ -214,3 +214,4 @@ function prepararDadosChartRelatorios(relatorios: any[], campo: string) {
     .sort((a, b) => parseInt(a.name) - parseInt(b.name))
 }
 
+

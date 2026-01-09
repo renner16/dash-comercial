@@ -261,3 +261,4 @@ const info = getInfoFaixa(cargo, faturamento)
 
 Para mais detalhes, consulte o código-fonte das APIs em `/app/api/`.
 
+

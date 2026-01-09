@@ -298,3 +298,4 @@ function prepararDadosChart(vendas: any[], tipo: 'valor' | 'count') {
     .sort((a, b) => parseInt(a.name) - parseInt(b.name))
 }
 
+

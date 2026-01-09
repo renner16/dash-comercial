@@ -96,3 +96,4 @@ export function SimpleBarChart({ title, data, dataKey = 'value', color = '#8b5cf
   )
 }
 
+

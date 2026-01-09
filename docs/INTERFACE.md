@@ -335,3 +335,4 @@ Página Inicial
 
 Esta visualização textual ajuda a entender o layout sem precisar rodar o projeto. Para ver a interface real, execute `npm run dev` e acesse http://localhost:3000
 
+
