@@ -3,19 +3,43 @@
 import { ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { ThemeToggle } from './theme-toggle'
+import { useState, useEffect } from 'react'
 
 export function Header() {
+  const [isDark, setIsDark] = useState(true)
+
+  useEffect(() => {
+    // Detectar tema inicial
+    const checkTheme = () => {
+      const isDarkMode = document.documentElement.classList.contains('dark')
+      setIsDark(isDarkMode)
+    }
+    
+    checkTheme()
+    
+    // Observar mudanças no tema
+    const observer = new MutationObserver(checkTheme)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    })
+    
+    return () => observer.disconnect()
+  }, [])
+
+  const logoSrc = isDark ? '/logo.png' : '/logolog2.png'
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 sm:px-8">
         <div className="flex items-center">
           <div className="relative flex items-center">
             <img 
-              src="/logo.png?v=2" 
+              src={logoSrc}
+              key={logoSrc} // Força re-render quando muda
               alt="Cultura Builder Logo" 
-              className="h-8 sm:h-12 w-auto object-contain"
+              className="h-8 sm:h-12 w-auto object-contain transition-opacity duration-300"
               style={{ maxWidth: '200px' }}
-              onLoad={() => console.log('Logo carregada com sucesso!')}
               onError={(e) => {
                 console.error('Erro ao carregar logo');
                 e.currentTarget.style.display = 'none';
