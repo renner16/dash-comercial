@@ -43,8 +43,11 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       let params = `vendedorId=${vendedor.id}`
       
       if (tipoVisao === 'diario' && dia) {
-        // Visão diária: busca por data específica
-        params += `&dia=${dia}`
+        // Visão diária: busca o mês inteiro para os gráficos mostrarem todos os dias
+        const dataSelecionada = new Date(dia + 'T00:00:00')
+        const mesData = dataSelecionada.getMonth() + 1
+        const anoData = dataSelecionada.getFullYear()
+        params += `&mes=${mesData}&ano=${anoData}`
       } else if (tipoVisao === 'semanal' && mes && semana) {
         // Visão semanal: busca por semana do mês
         params += `&mes=${mes}&ano=${ano}&semana=${semana}`
