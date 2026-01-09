@@ -126,6 +126,19 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     ? 'no ano'
     : 'no total'
 
+  // Calcular metas (baseado em vendas por semana)
+  const metasPorCargo: Record<string, { semanal: number, mensal: number }> = {
+    JUNIOR: { semanal: 5, mensal: 20 },
+    PLENO: { semanal: 7, mensal: 28 },
+    SENIOR: { semanal: 10, mensal: 40 },
+    GERENTE: { semanal: 12, mensal: 48 },
+  }
+  
+  const metaAtual = metasPorCargo[vendedor.cargo] || metasPorCargo.PLENO
+  const metaVendas = tipoVisao === 'semanal' ? metaAtual.semanal : metaAtual.mensal
+  const progressoMeta = metaVendas > 0 ? (qtdVendas / metaVendas) * 100 : 0
+  const metaAtingida = qtdVendas >= metaVendas
+
   const handleSaveVenda = async (venda: any) => {
     try {
       if (venda.id) {
@@ -309,6 +322,52 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Meta de Vendas */}
+      {(tipoVisao === 'semanal' || tipoVisao === 'mensal') && (
+        <Card className={`${metaAtingida ? 'bg-gradient-to-br from-green-500/10 to-emerald-600/5 border-green-500/30' : 'bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/30'}`}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">
+                🎯 Meta de Vendas {tipoVisao === 'semanal' ? 'Semanal' : 'Mensal'}
+              </CardTitle>
+              <span className={`text-2xl font-bold ${metaAtingida ? 'text-green-600' : 'text-blue-600'}`}>
+                {qtdVendas}/{metaVendas}
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Progresso</span>
+                <span className="font-medium">{Math.min(100, progressoMeta).toFixed(0)}%</span>
+              </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-500 ${metaAtingida ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}
+                  style={{ width: `${Math.min(100, progressoMeta)}%` }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              {metaAtingida ? (
+                <>
+                  <span className="text-green-600 font-medium">✅ Meta atingida!</span>
+                  {progressoMeta > 100 && (
+                    <span className="text-muted-foreground">
+                      (+{(qtdVendas - metaVendas)} vendas acima)
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-muted-foreground">
+                  Faltam {metaVendas - qtdVendas} vendas para atingir a meta
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPIs de Leads - Sempre Visível */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
