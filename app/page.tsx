@@ -15,6 +15,7 @@ interface Vendedor {
 export default function Home() {
   const [vendedores, setVendedores] = useState<Vendedor[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<string>('geral')
 
   useEffect(() => {
     fetch('/api/vendedores')
@@ -27,6 +28,35 @@ export default function Home() {
         console.error('Erro ao carregar vendedores:', err)
         setLoading(false)
       })
+  }, [])
+
+  // Quando a URL mudar ou houver um hash, verificar se precisa mudar a aba
+  useEffect(() => {
+    // Verificar se está no cliente
+    if (typeof window === 'undefined') return
+    
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '')
+      if (hash === 'geral' || hash === '') {
+        setActiveTab('geral')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
+    
+    // Listener para evento customizado do logo
+    const handleNavigateToGeral = () => {
+      setActiveTab('geral')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    
+    handleHashChange()
+    window.addEventListener('hashchange', handleHashChange)
+    window.addEventListener('navigateToGeral', handleNavigateToGeral)
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange)
+      window.removeEventListener('navigateToGeral', handleNavigateToGeral)
+    }
   }, [])
 
   if (loading) {
@@ -49,7 +79,7 @@ export default function Home() {
     <div className="min-h-screen">
       <Header />
       <main className="container mx-auto px-4 sm:px-8 py-6 sm:py-8">
-        <Tabs defaultValue="geral" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="overflow-x-auto -mx-4 sm:mx-0 pb-2">
             <TabsList className="inline-flex min-w-full sm:min-w-0 px-4 sm:px-1 h-12 sm:h-11 gap-1 sm:gap-2 bg-muted/50 backdrop-blur-sm">
               <TabsTrigger 

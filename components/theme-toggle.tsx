@@ -8,13 +8,18 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
 
   useEffect(() => {
+    // Verificar se está no cliente
+    if (typeof window === 'undefined' || typeof document === 'undefined') return
+    
     // Carregar tema salvo ou usar dark como padrão
-    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' || 'dark'
+    const savedTheme = (localStorage.getItem('theme') as 'dark' | 'light') || 'dark'
     setTheme(savedTheme)
     document.documentElement.classList.toggle('dark', savedTheme === 'dark')
   }, [])
 
   const toggleTheme = () => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return
+    
     const newTheme = theme === 'dark' ? 'light' : 'dark'
     setTheme(newTheme)
     localStorage.setItem('theme', newTheme)

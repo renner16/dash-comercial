@@ -10,6 +10,9 @@ export function Header() {
   const [isDark, setIsDark] = useState(true)
 
   useEffect(() => {
+    // Verificar se está no cliente
+    if (typeof window === 'undefined' || typeof document === 'undefined') return
+    
     // Detectar tema inicial
     const checkTheme = () => {
       const isDarkMode = document.documentElement.classList.contains('dark')
@@ -34,7 +37,20 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 sm:px-8">
         <div className="flex items-center">
-          <div className="relative flex items-center">
+          <Link 
+            href="/#geral" 
+            className="relative flex items-center cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={(e) => {
+              // Se já estiver na home, apenas muda a aba
+              if (typeof window !== 'undefined' && window.location.pathname === '/') {
+                e.preventDefault()
+                window.location.hash = 'geral'
+                // Dispara evento customizado para mudar a aba
+                window.dispatchEvent(new CustomEvent('navigateToGeral'))
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }
+            }}
+          >
             <img 
               src={logoSrc}
               key={logoSrc} // Força re-render quando muda
@@ -46,7 +62,7 @@ export function Header() {
                 e.currentTarget.style.display = 'none';
               }}
             />
-          </div>
+          </Link>
         </div>
         
         <div className="flex items-center gap-2 sm:gap-4">
