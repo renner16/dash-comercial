@@ -51,9 +51,30 @@ export function VendaDialog({ open, onOpenChange, onSave, venda, vendedorId }: V
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Validação de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      alert('❌ Por favor, insira um email válido.')
+      return
+    }
+
+    const valor = parseFloat(formData.valor)
+    
+    // Alerta para valores muito baixos (< R$ 100)
+    if (valor < 100) {
+      const confirmar = confirm('⚠️ Valor muito baixo (menos de R$ 100,00). Tem certeza que está correto?')
+      if (!confirmar) return
+    }
+    
+    // Alerta para valores muito altos (> R$ 10.000)
+    if (valor > 10000) {
+      const confirmar = confirm('⚠️ Valor muito alto (mais de R$ 10.000,00). Tem certeza que está correto?')
+      if (!confirmar) return
+    }
+    
     const vendaData: any = {
       ...formData,
-      valor: parseFloat(formData.valor),
+      valor,
       data: new Date(formData.data + 'T12:00:00'),
       vendedorId,
     }
