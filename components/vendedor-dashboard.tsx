@@ -8,6 +8,7 @@ import { VendaDialog } from '@/components/venda-dialog'
 import { RelatorioDialog } from '@/components/relatorio-dialog'
 import { SimpleLineChart, SimpleBarChart } from '@/components/charts'
 import { PeriodSelector } from '@/components/period-selector'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -29,6 +30,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const [dia, setDia] = useState<string | null>(hoje.toISOString().split('T')[0])
   const [semana, setSemana] = useState<number | null>(1)
   const [tipoVisao, setTipoVisao] = useState<'diario' | 'semanal' | 'mensal' | 'anual' | 'total'>('mensal')
+  const [periodoGrafico, setPeriodoGrafico] = useState<'auto' | 'dia' | 'semana' | 'mes'>('auto')
   const [vendas, setVendas] = useState<any[]>([])
   const [relatorios, setRelatorios] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,9 +50,9 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         const mesData = dataSelecionada.getMonth() + 1
         const anoData = dataSelecionada.getFullYear()
         params += `&mes=${mesData}&ano=${anoData}`
-      } else if (tipoVisao === 'semanal' && mes && semana) {
-        // Visão semanal: busca por semana do mês
-        params += `&mes=${mes}&ano=${ano}&semana=${semana}`
+      } else if (tipoVisao === 'semanal' && mes) {
+        // Visão semanal: busca o MÊS INTEIRO para comparar semanas
+        params += `&mes=${mes}&ano=${ano}`
       } else if (tipoVisao === 'mensal' && mes) {
         // Visão mensal: busca por mês/ano
         params += `&mes=${mes}&ano=${ano}`
@@ -99,13 +101,18 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     comissaoEstimada: v.status === 'CONFIRMADA' ? v.valor * infoFaixa.percentual : 0
   }))
 
+  // Determinar período real do gráfico
+  const periodoReal = periodoGrafico === 'auto' 
+    ? (tipoVisao === 'semanal' ? 'semana' : tipoVisao === 'mensal' || tipoVisao === 'diario' ? 'dia' : tipoVisao === 'anual' || tipoVisao === 'total' ? 'mes' : 'dia')
+    : periodoGrafico === 'semana' ? 'semana' : periodoGrafico === 'mes' ? 'mes' : 'dia'
+
   // Preparar dados para gráficos de vendas
-  const chartDataFaturamento = prepararDadosChart(vendasConfirmadas, 'valor', tipoVisao)
-  const chartDataQuantidade = prepararDadosChart(vendasConfirmadas, 'count', tipoVisao)
+  const chartDataFaturamento = prepararDadosChart(vendasConfirmadas, 'valor', tipoVisao, periodoReal, semana)
+  const chartDataQuantidade = prepararDadosChart(vendasConfirmadas, 'count', tipoVisao, periodoReal, semana)
 
   // Preparar dados para gráficos de relatórios
-  const chartDataLeads = prepararDadosChartRelatorios(relatorios, 'leadsRecebidos', tipoVisao)
-  const chartDataRespostas = prepararDadosChartRelatorios(relatorios, 'respostasEnviadas', tipoVisao)
+  const chartDataLeads = prepararDadosChartRelatorios(relatorios, 'leadsRecebidos', tipoVisao, periodoReal, semana)
+  const chartDataRespostas = prepararDadosChartRelatorios(relatorios, 'respostasEnviadas', tipoVisao, periodoReal, semana)
 
   // Calcular dados de leads (para qualquer período)
   const leadsRecebidosPeriodo = relatorios.reduce((sum, r) => sum + r.leadsRecebidos, 0)
@@ -485,29 +492,65 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         </CardContent>
       </Card>
 
+      {/* Seletor de Período do Gráfico */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Gráficos de Vendas</h3>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-muted-foreground">Visualizar por:</label>
+          <Select value={periodoGrafico} onValueChange={(v: any) => setPeriodoGrafico(v)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">Automático</SelectItem>
+              <SelectItem value="dia">Por Dia</SelectItem>
+              <SelectItem value="semana">Por Semana</SelectItem>
+              <SelectItem value="mes">Por Mês</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* Gráficos de Vendas */}
       <div className={`grid gap-4 ${tipoVisao === 'total' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <SimpleLineChart
-          title={tipoVisao === 'total' || tipoVisao === 'anual' ? "Faturamento por Mês" : "Faturamento por Dia"}
+          title={
+            periodoReal === 'mes' ? "Faturamento por Mês" : 
+            periodoReal === 'semana' ? "Faturamento por Semana" : 
+            "Faturamento por Dia"
+          }
           data={chartDataFaturamento}
           color="#8b5cf6"
         />
         <SimpleBarChart
-          title={tipoVisao === 'total' || tipoVisao === 'anual' ? "Quantidade de Vendas por Mês" : "Quantidade de Vendas por Dia"}
+          title={
+            periodoReal === 'mes' ? "Quantidade de Vendas por Mês" : 
+            periodoReal === 'semana' ? "Quantidade de Vendas por Semana" : 
+            "Quantidade de Vendas por Dia"
+          }
           data={chartDataQuantidade}
           color="#10b981"
         />
       </div>
 
       {/* Gráficos de Relatórios */}
+      <h3 className="text-lg font-semibold mt-4">Gráficos de Relatórios</h3>
       <div className={`grid gap-4 ${tipoVisao === 'total' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <SimpleLineChart
-          title={tipoVisao === 'total' || tipoVisao === 'anual' ? "Leads Recebidos por Mês" : "Leads Recebidos por Dia"}
+          title={
+            periodoReal === 'mes' ? "Leads Recebidos por Mês" : 
+            periodoReal === 'semana' ? "Leads Recebidos por Semana" : 
+            "Leads Recebidos por Dia"
+          }
           data={chartDataLeads}
           color="#3b82f6"
         />
         <SimpleLineChart
-          title={tipoVisao === 'total' || tipoVisao === 'anual' ? "Respostas Enviadas por Mês" : "Respostas Enviadas por Dia"}
+          title={
+            periodoReal === 'mes' ? "Respostas Enviadas por Mês" : 
+            periodoReal === 'semana' ? "Respostas Enviadas por Semana" : 
+            "Respostas Enviadas por Dia"
+          }
           data={chartDataRespostas}
           color="#f59e0b"
         />
@@ -533,9 +576,24 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   )
 }
 
-function prepararDadosChart(vendas: any[], tipo: 'valor' | 'count', tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total') {
-  // Se visão ANUAL ou TOTAL, agrupa por MÊS com ANO
-  if (tipoVisao === 'anual' || tipoVisao === 'total') {
+function getWeekOfMonth(date: Date): number {
+  const dia = date.getDate()
+  if (dia <= 7) return 1
+  if (dia <= 14) return 2
+  if (dia <= 21) return 3
+  if (dia <= 28) return 4
+  return 5
+}
+
+function prepararDadosChart(
+  vendas: any[], 
+  tipo: 'valor' | 'count', 
+  tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total',
+  periodoGrafico: 'dia' | 'semana' | 'mes' = 'dia',
+  semanaSelecionada: number | null = null
+) {
+  // Se período do gráfico for MÊS ou for visão ANUAL/TOTAL, agrupa por MÊS com ANO
+  if (periodoGrafico === 'mes' || tipoVisao === 'anual' || tipoVisao === 'total') {
     const dadosPorMesAno: Record<string, number> = {}
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
@@ -580,7 +638,32 @@ function prepararDadosChart(vendas: any[], tipo: 'valor' | 'count', tipoVisao: '
       .sort((a, b) => a.sortKey - b.sortKey)
   }
   
-  // Para MENSAL/SEMANAL, agrupa por DIA - mostrar TODOS os dias do mês
+  // Se período do gráfico for SEMANA, agrupa por SEMANA
+  if (periodoGrafico === 'semana') {
+    const dadosPorSemana: Record<number, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0
+    }
+    
+    vendas.forEach(v => {
+      const data = new Date(v.data)
+      const semana = getWeekOfMonth(data)
+      dadosPorSemana[semana] += tipo === 'valor' ? v.valor : 1
+    })
+
+    return Object.entries(dadosPorSemana)
+      .map(([semana, valor]) => ({
+        name: `Semana ${semana}`,
+        value: valor,
+        highlight: semanaSelecionada === parseInt(semana) // Destacar semana selecionada
+      }))
+      .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]))
+  }
+  
+  // Para DIA, agrupa por DIA - mostrar TODOS os dias do mês
   const dadosPorDia: Record<number, number> = {}
   
   // Determinar o mês/ano para calcular quantos dias tem
@@ -611,9 +694,15 @@ function prepararDadosChart(vendas: any[], tipo: 'valor' | 'count', tipoVisao: '
     .sort((a, b) => parseInt(a.name) - parseInt(b.name))
 }
 
-function prepararDadosChartRelatorios(relatorios: any[], campo: 'leadsRecebidos' | 'respostasEnviadas', tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total') {
-  // Se visão ANUAL ou TOTAL, agrupa por MÊS com ANO
-  if (tipoVisao === 'anual' || tipoVisao === 'total') {
+function prepararDadosChartRelatorios(
+  relatorios: any[], 
+  campo: 'leadsRecebidos' | 'respostasEnviadas', 
+  tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total',
+  periodoGrafico: 'dia' | 'semana' | 'mes' = 'dia',
+  semanaSelecionada: number | null = null
+) {
+  // Se período do gráfico for MÊS ou for visão ANUAL/TOTAL, agrupa por MÊS com ANO
+  if (periodoGrafico === 'mes' || tipoVisao === 'anual' || tipoVisao === 'total') {
     const dadosPorMesAno: Record<string, number> = {}
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
@@ -658,7 +747,32 @@ function prepararDadosChartRelatorios(relatorios: any[], campo: 'leadsRecebidos'
       .sort((a, b) => a.sortKey - b.sortKey)
   }
   
-  // Para MENSAL/SEMANAL, agrupa por DIA - mostrar TODOS os dias do mês
+  // Se período do gráfico for SEMANA, agrupa por SEMANA
+  if (periodoGrafico === 'semana') {
+    const dadosPorSemana: Record<number, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0
+    }
+    
+    relatorios.forEach(r => {
+      const data = new Date(r.data)
+      const semana = getWeekOfMonth(data)
+      dadosPorSemana[semana] += r[campo]
+    })
+
+    return Object.entries(dadosPorSemana)
+      .map(([semana, valor]) => ({
+        name: `Semana ${semana}`,
+        value: valor,
+        highlight: semanaSelecionada === parseInt(semana)
+      }))
+      .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]))
+  }
+  
+  // Para DIA, agrupa por DIA - mostrar TODOS os dias do mês
   const dadosPorDia: Record<number, number> = {}
   
   // Determinar o mês/ano para calcular quantos dias tem
