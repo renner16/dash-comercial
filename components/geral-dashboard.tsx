@@ -28,8 +28,10 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   const [semana, setSemana] = useState<number | null>(1)
   const [tipoVisao, setTipoVisao] = useState<'diario' | 'semanal' | 'mensal' | 'anual' | 'total'>('diario')
   const [periodoGrafico, setPeriodoGrafico] = useState<'auto' | 'dia' | 'semana' | 'mes'>('auto')
-  const [vendas, setVendas] = useState<any[]>([])
-  const [relatorios, setRelatorios] = useState<any[]>([])
+  const [vendas, setVendas] = useState<any[]>([]) // Dados do período exato (para KPIs e tabela)
+  const [relatorios, setRelatorios] = useState<any[]>([]) // Dados do período exato
+  const [vendasGraficos, setVendasGraficos] = useState<any[]>([]) // Dados expandidos para gráficos
+  const [relatoriosGraficos, setRelatoriosGraficos] = useState<any[]>([]) // Dados expandidos para gráficos
   const [loading, setLoading] = useState(true)
   const [filtroVendedor, setFiltroVendedor] = useState<string>('todos')
 
@@ -37,49 +39,70 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
     setLoading(true)
     try {
       let params = ''
+      let paramsGraficos = '' // Params separados para gráficos
       
       if (tipoVisao === 'diario' && dia) {
-        // Visão diária: busca o mês inteiro para os gráficos mostrarem todos os dias
+        // KPIs: apenas o dia selecionado
+        params = `dia=${dia}`
+        
+        // Gráficos: mês inteiro para contexto
         const dataSelecionada = new Date(dia + 'T00:00:00')
         const mesData = dataSelecionada.getMonth() + 1
         const anoData = dataSelecionada.getFullYear()
-        params = `mes=${mesData}&ano=${anoData}`
-      } else if (tipoVisao === 'semanal' && mes) {
-        // Visão semanal: busca o MÊS INTEIRO para comparar semanas
-        params = `mes=${mes}&ano=${ano}`
+        paramsGraficos = `mes=${mesData}&ano=${anoData}`
+      } else if (tipoVisao === 'semanal' && mes && semana) {
+        // KPIs: apenas a semana selecionada
+        params = `mes=${mes}&ano=${ano}&semana=${semana}`
+        
+        // Gráficos: mês inteiro para comparar semanas
+        paramsGraficos = `mes=${mes}&ano=${ano}`
       } else if (tipoVisao === 'mensal' && mes) {
-        // Visão mensal: busca últimos 6 meses para comparação
+        // KPIs: apenas o mês selecionado
+        params = `mes=${mes}&ano=${ano}`
+        
+        // Gráficos: range expandido para contexto
         const hoje = new Date()
         const mesAtual = hoje.getMonth() + 1
         const anoAtual = hoje.getFullYear()
         
-        // Se é o mês atual, buscar últimos 6 meses
+        // Se é o mês atual, buscar últimos 6 meses para gráficos
         if (mes === mesAtual && ano === anoAtual) {
           const dataInicio = new Date(ano, mes - 7, 1) // 6 meses antes
           const dataFim = new Date(ano, mes, 0, 23, 59, 59) // Fim do mês atual
-          params = `dataInicio=${dataInicio.toISOString()}&dataFim=${dataFim.toISOString()}`
+          paramsGraficos = `dataInicio=${dataInicio.toISOString()}&dataFim=${dataFim.toISOString()}`
         } else {
-          // Se é mês passado, buscar 3 meses antes e 3 depois
+          // Se é mês passado, buscar 3 meses antes e 3 depois para gráficos
           const dataInicio = new Date(ano, mes - 4, 1) // 3 meses antes
           const dataFim = new Date(ano, mes + 2, 0, 23, 59, 59) // 3 meses depois
-          params = `dataInicio=${dataInicio.toISOString()}&dataFim=${dataFim.toISOString()}`
+          paramsGraficos = `dataInicio=${dataInicio.toISOString()}&dataFim=${dataFim.toISOString()}`
         }
       } else if (tipoVisao === 'anual') {
-        // Visão anual: busca por ano
+        // KPIs e Gráficos: mesmo ano
         params = `ano=${ano}`
+        paramsGraficos = `ano=${ano}`
       }
-      // Se tipoVisao === 'total', não adiciona nenhum filtro de período
+      // Se tipoVisao === 'total', não adiciona nenhum filtro de período (KPIs e gráficos iguais)
+      if (tipoVisao === 'total') {
+        paramsGraficos = params
+      }
       
-      const [vendasRes, relatoriosRes] = await Promise.all([
+      // Buscar dados do período exato (KPIs) e dados expandidos (gráficos)
+      const [vendasRes, relatoriosRes, vendasGraficosRes, relatoriosGraficosRes] = await Promise.all([
         fetch(`/api/vendas?${params}`),
-        fetch(`/api/relatorios?${params}`)
+        fetch(`/api/relatorios?${params}`),
+        fetch(`/api/vendas?${paramsGraficos}`),
+        fetch(`/api/relatorios?${paramsGraficos}`)
       ])
       
       const vendasData = await vendasRes.json()
       const relatoriosData = await relatoriosRes.json()
+      const vendasGraficosData = await vendasGraficosRes.json()
+      const relatoriosGraficosData = await relatoriosGraficosRes.json()
       
       setVendas(vendasData)
       setRelatorios(relatoriosData)
+      setVendasGraficos(vendasGraficosData)
+      setRelatoriosGraficos(relatoriosGraficosData)
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
     } finally {
@@ -125,13 +148,16 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
     ? (tipoVisao === 'semanal' ? 'semana' : tipoVisao === 'mensal' || tipoVisao === 'diario' ? 'dia' : tipoVisao === 'anual' || tipoVisao === 'total' ? 'mes' : 'dia')
     : periodoGrafico === 'semana' ? 'semana' : periodoGrafico === 'mes' ? 'mes' : 'dia'
 
-  // Preparar dados para gráficos
-  const chartDataFaturamento = prepararDadosChartVendas(vendasConfirmadas, 'valor', tipoVisao, periodoReal, semana, mes, ano)
-  const chartDataQuantidade = prepararDadosChartVendas(vendasConfirmadas, 'count', tipoVisao, periodoReal, semana, mes, ano)
+  // Filtrar vendas confirmadas dos dados de gráficos
+  const vendasConfirmadasGraficos = vendasGraficos.filter(v => v.status === 'CONFIRMADA')
 
-  // Preparar dados de relatórios (soma de todos os vendedores por dia)
-  const chartDataLeads = prepararDadosChartRelatorios(relatorios, 'leadsRecebidos', tipoVisao, periodoReal, semana, mes, ano)
-  const chartDataRespostas = prepararDadosChartRelatorios(relatorios, 'respostasEnviadas', tipoVisao, periodoReal, semana, mes, ano)
+  // Preparar dados para gráficos (usa dados expandidos)
+  const chartDataFaturamento = prepararDadosChartVendas(vendasConfirmadasGraficos, 'valor', tipoVisao, periodoReal, semana, mes, ano)
+  const chartDataQuantidade = prepararDadosChartVendas(vendasConfirmadasGraficos, 'count', tipoVisao, periodoReal, semana, mes, ano)
+
+  // Preparar dados de relatórios (usa dados expandidos)
+  const chartDataLeads = prepararDadosChartRelatorios(relatoriosGraficos, 'leadsRecebidos', tipoVisao, periodoReal, semana, mes, ano)
+  const chartDataRespostas = prepararDadosChartRelatorios(relatoriosGraficos, 'respostasEnviadas', tipoVisao, periodoReal, semana, mes, ano)
 
   const handleExportarTodasVendas = () => {
     const vendasParaExportar = filtroVendedor === 'todos' ? vendas : vendasFiltradas
