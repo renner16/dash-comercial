@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
     const ano = searchParams.get('ano')
     const dia = searchParams.get('dia')
     const semana = searchParams.get('semana')
+    const dataInicio = searchParams.get('dataInicio')
+    const dataFim = searchParams.get('dataFim')
 
     let where: any = {}
 
@@ -16,7 +18,13 @@ export async function GET(request: NextRequest) {
       where.vendedorId = vendedorId
     }
 
-    if (dia) {
+    // Se dataInicio e dataFim forem fornecidos, usar range customizado
+    if (dataInicio && dataFim) {
+      where.data = {
+        gte: new Date(dataInicio),
+        lte: new Date(dataFim),
+      }
+    } else if (dia) {
       // Visão diária: filtrar por dia específico
       const dataEspecifica = new Date(dia + 'T00:00:00')
       const startDate = new Date(dataEspecifica.getFullYear(), dataEspecifica.getMonth(), dataEspecifica.getDate(), 0, 0, 0)

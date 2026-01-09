@@ -48,8 +48,22 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
         // Visão semanal: busca o MÊS INTEIRO para comparar semanas
         params = `mes=${mes}&ano=${ano}`
       } else if (tipoVisao === 'mensal' && mes) {
-        // Visão mensal: busca por mês/ano
-        params = `mes=${mes}&ano=${ano}`
+        // Visão mensal: busca últimos 6 meses para comparação
+        const hoje = new Date()
+        const mesAtual = hoje.getMonth() + 1
+        const anoAtual = hoje.getFullYear()
+        
+        // Se é o mês atual, buscar últimos 6 meses
+        if (mes === mesAtual && ano === anoAtual) {
+          const dataInicio = new Date(ano, mes - 7, 1) // 6 meses antes
+          const dataFim = new Date(ano, mes, 0, 23, 59, 59) // Fim do mês atual
+          params = `dataInicio=${dataInicio.toISOString()}&dataFim=${dataFim.toISOString()}`
+        } else {
+          // Se é mês passado, buscar 3 meses antes e 3 depois
+          const dataInicio = new Date(ano, mes - 4, 1) // 3 meses antes
+          const dataFim = new Date(ano, mes + 2, 0, 23, 59, 59) // 3 meses depois
+          params = `dataInicio=${dataInicio.toISOString()}&dataFim=${dataFim.toISOString()}`
+        }
       } else if (tipoVisao === 'anual') {
         // Visão anual: busca por ano
         params = `ano=${ano}`
@@ -112,12 +126,12 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
     : periodoGrafico === 'semana' ? 'semana' : periodoGrafico === 'mes' ? 'mes' : 'dia'
 
   // Preparar dados para gráficos
-  const chartDataFaturamento = prepararDadosChartVendas(vendasConfirmadas, 'valor', tipoVisao, periodoReal, semana)
-  const chartDataQuantidade = prepararDadosChartVendas(vendasConfirmadas, 'count', tipoVisao, periodoReal, semana)
+  const chartDataFaturamento = prepararDadosChartVendas(vendasConfirmadas, 'valor', tipoVisao, periodoReal, semana, mes, ano)
+  const chartDataQuantidade = prepararDadosChartVendas(vendasConfirmadas, 'count', tipoVisao, periodoReal, semana, mes, ano)
 
   // Preparar dados de relatórios (soma de todos os vendedores por dia)
-  const chartDataLeads = prepararDadosChartRelatorios(relatorios, 'leadsRecebidos', tipoVisao, periodoReal, semana)
-  const chartDataRespostas = prepararDadosChartRelatorios(relatorios, 'respostasEnviadas', tipoVisao, periodoReal, semana)
+  const chartDataLeads = prepararDadosChartRelatorios(relatorios, 'leadsRecebidos', tipoVisao, periodoReal, semana, mes, ano)
+  const chartDataRespostas = prepararDadosChartRelatorios(relatorios, 'respostasEnviadas', tipoVisao, periodoReal, semana, mes, ano)
 
   const handleExportarTodasVendas = () => {
     const vendasParaExportar = filtroVendedor === 'todos' ? vendas : vendasFiltradas
@@ -445,7 +459,9 @@ function prepararDadosChartVendas(
   tipo: 'valor' | 'count', 
   tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total',
   periodoGrafico: 'dia' | 'semana' | 'mes' = 'dia',
-  semanaSelecionada: number | null = null
+  semanaSelecionada: number | null = null,
+  mesSelecionado: number | null = null,
+  anoSelecionado: number | null = null
 ) {
   // Se período do gráfico for MÊS ou for visão ANUAL/TOTAL, agrupa por MÊS com ANO
   if (periodoGrafico === 'mes' || tipoVisao === 'anual' || tipoVisao === 'total') {
@@ -483,11 +499,17 @@ function prepararDadosChartVendas(
 
     return Object.entries(dadosPorMesAno)
       .map(([chave, valor]) => {
-        const [ano, mes] = chave.split('-')
+        const [anoStr, mesStr] = chave.split('-')
+        const ano = parseInt(anoStr)
+        const mes = parseInt(mesStr)
+        // Destacar o mês selecionado
+        const isSelected = mesSelecionado && anoSelecionado && 
+                          mes === (mesSelecionado - 1) && ano === anoSelecionado
         return {
-          name: `${mesesNome[parseInt(mes)]} ${ano}`,
+          name: `${mesesNome[mes]} ${ano}`,
           value: valor,
-          sortKey: parseInt(ano) * 100 + parseInt(mes)
+          sortKey: ano * 100 + mes,
+          highlight: isSelected
         }
       })
       .sort((a, b) => a.sortKey - b.sortKey)
@@ -554,7 +576,9 @@ function prepararDadosChartRelatorios(
   campo: string, 
   tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total',
   periodoGrafico: 'dia' | 'semana' | 'mes' = 'dia',
-  semanaSelecionada: number | null = null
+  semanaSelecionada: number | null = null,
+  mesSelecionado: number | null = null,
+  anoSelecionado: number | null = null
 ) {
   // Se período do gráfico for MÊS ou for visão ANUAL/TOTAL, agrupa por MÊS com ANO
   if (periodoGrafico === 'mes' || tipoVisao === 'anual' || tipoVisao === 'total') {
@@ -592,11 +616,17 @@ function prepararDadosChartRelatorios(
 
     return Object.entries(dadosPorMesAno)
       .map(([chave, valor]) => {
-        const [ano, mes] = chave.split('-')
+        const [anoStr, mesStr] = chave.split('-')
+        const ano = parseInt(anoStr)
+        const mes = parseInt(mesStr)
+        // Destacar o mês selecionado
+        const isSelected = mesSelecionado && anoSelecionado && 
+                          mes === (mesSelecionado - 1) && ano === anoSelecionado
         return {
-          name: `${mesesNome[parseInt(mes)]} ${ano}`,
+          name: `${mesesNome[mes]} ${ano}`,
           value: valor,
-          sortKey: parseInt(ano) * 100 + parseInt(mes)
+          sortKey: ano * 100 + mes,
+          highlight: isSelected
         }
       })
       .sort((a, b) => a.sortKey - b.sortKey)
