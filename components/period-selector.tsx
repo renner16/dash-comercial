@@ -212,11 +212,11 @@ export function PeriodSelector({
           </div>
         )}
 
-        {/* Seletor de Mês (aparece apenas em mensal) - Calendário de meses */}
+        {/* Seletor de Mês (aparece apenas em mensal) - Calendário padrão */}
         {tipoVisao === 'mensal' && (
           <div className="relative">
             <DatePicker
-              selected={mes && ano ? new Date(ano, mes - 1, 1) : null}
+              selected={mes && ano ? new Date(ano, mes - 1, 15) : null}
               onChange={(date: Date | null) => {
                 if (date && onMesChange && onAnoChange) {
                   onMesChange(date.getMonth() + 1)
@@ -225,7 +225,6 @@ export function PeriodSelector({
               }}
               locale="pt-BR"
               dateFormat="MMMM yyyy"
-              showMonthYearPicker
               className={cn(
                 "flex h-10 w-[180px] sm:w-[220px] rounded-md border border-input bg-background px-3 py-2 text-sm",
                 "ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2",
@@ -233,6 +232,7 @@ export function PeriodSelector({
                 "cursor-pointer"
               )}
               placeholderText="Clique para selecionar o mês"
+              openToDate={mes && ano ? new Date(ano, mes - 1, 1) : new Date()}
             />
           </div>
         )}
