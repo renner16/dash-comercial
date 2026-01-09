@@ -202,4 +202,50 @@
   cursor: not-allowed;
 }
 
+/* Custom Tabs Styles */
+[role="tablist"] {
+  position: relative;
+}
+
+[role="tab"] {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[role="tab"]:hover:not([data-state="active"]) {
+  background-color: hsl(var(--muted));
+  transform: translateY(-1px);
+}
+
+[role="tab"][data-state="active"] {
+  position: relative;
+}
+
+[role="tab"][data-state="active"]::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    transparent,
+    hsl(var(--primary)),
+    transparent
+  );
+  border-radius: 3px 3px 0 0;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
 

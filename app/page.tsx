@@ -50,11 +50,20 @@ export default function Home() {
       <Header />
       <main className="container mx-auto px-4 sm:px-8 py-6 sm:py-8">
         <Tabs defaultValue="geral" className="space-y-6">
-          <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <TabsList className="inline-flex min-w-full sm:min-w-0 px-4 sm:px-0">
-              <TabsTrigger value="geral" className="whitespace-nowrap">Geral</TabsTrigger>
+          <div className="overflow-x-auto -mx-4 sm:mx-0 pb-2">
+            <TabsList className="inline-flex min-w-full sm:min-w-0 px-4 sm:px-1 h-12 sm:h-11 gap-1 sm:gap-2 bg-muted/50 backdrop-blur-sm">
+              <TabsTrigger 
+                value="geral" 
+                className="whitespace-nowrap px-4 sm:px-6 rounded-lg font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-primary"
+              >
+                Geral
+              </TabsTrigger>
               {vendedores.map(vendedor => (
-                <TabsTrigger key={vendedor.id} value={vendedor.id} className="whitespace-nowrap">
+                <TabsTrigger 
+                  key={vendedor.id} 
+                  value={vendedor.id} 
+                  className="whitespace-nowrap px-4 sm:px-6 rounded-lg font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-primary"
+                >
                   {vendedor.nome}
                 </TabsTrigger>
               ))}
