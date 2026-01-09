@@ -47,7 +47,7 @@ export function RelatorioDialog({ open, onOpenChange, onSave, relatorio, vendedo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    const relatorioData = {
+    const relatorioData: any = {
       ...formData,
       leadsRecebidos: parseInt(formData.leadsRecebidos),
       respostasEnviadas: parseInt(formData.respostasEnviadas),

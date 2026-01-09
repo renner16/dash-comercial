@@ -51,7 +51,7 @@ export function VendaDialog({ open, onOpenChange, onSave, venda, vendedorId }: V
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    const vendaData = {
+    const vendaData: any = {
       ...formData,
       valor: parseFloat(formData.valor),
       data: new Date(formData.data + 'T12:00:00'),
