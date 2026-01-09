@@ -279,28 +279,28 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       )}
 
       {/* Gráficos de Performance do Time */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+      <div className={`grid gap-4 ${tipoVisao === 'total' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <SimpleLineChart
-          title="Faturamento do Time ao Longo do Mês"
+          title={tipoVisao === 'total' || tipoVisao === 'anual' ? "Faturamento do Time por Mês" : "Faturamento do Time por Dia"}
           data={chartDataFaturamento}
           color="#8b5cf6"
         />
         <SimpleBarChart
-          title="Total de Vendas ao Longo do Mês"
+          title={tipoVisao === 'total' || tipoVisao === 'anual' ? "Total de Vendas por Mês" : "Total de Vendas por Dia"}
           data={chartDataQuantidade}
           color="#10b981"
         />
       </div>
 
       {/* Gráficos de Atividade do Time */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+      <div className={`grid gap-4 ${tipoVisao === 'total' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <SimpleLineChart
-          title="Leads Recebidos (Time)"
+          title={tipoVisao === 'total' || tipoVisao === 'anual' ? "Leads Recebidos (Time) por Mês" : "Leads Recebidos (Time) por Dia"}
           data={chartDataLeads}
           color="#3b82f6"
         />
         <SimpleLineChart
-          title="Respostas Enviadas (Time)"
+          title={tipoVisao === 'total' || tipoVisao === 'anual' ? "Respostas Enviadas (Time) por Mês" : "Respostas Enviadas (Time) por Dia"}
           data={chartDataRespostas}
           color="#f59e0b"
         />
@@ -362,25 +362,33 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 }
 
 function prepararDadosChartVendas(vendas: any[], tipo: 'valor' | 'count', tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total') {
-  // Se visão ANUAL ou TOTAL, agrupa por MÊS
+  // Se visão ANUAL ou TOTAL, agrupa por MÊS com ANO
   if (tipoVisao === 'anual' || tipoVisao === 'total') {
-    const dadosPorMes: Record<number, number> = {}
+    const dadosPorMesAno: Record<string, number> = {} // Formato: "2025-0", "2025-1", etc.
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
     vendas.forEach(v => {
-      const mes = new Date(v.data).getMonth() // 0-11
-      if (!dadosPorMes[mes]) {
-        dadosPorMes[mes] = 0
+      const data = new Date(v.data)
+      const ano = data.getFullYear()
+      const mes = data.getMonth() // 0-11
+      const chave = `${ano}-${mes}`
+      
+      if (!dadosPorMesAno[chave]) {
+        dadosPorMesAno[chave] = 0
       }
-      dadosPorMes[mes] += tipo === 'valor' ? v.valor : 1
+      dadosPorMesAno[chave] += tipo === 'valor' ? v.valor : 1
     })
 
-    return Object.entries(dadosPorMes)
-      .map(([mes, valor]) => ({
-        name: mesesNome[parseInt(mes)],
-        value: valor
-      }))
-      .sort((a, b) => mesesNome.indexOf(a.name) - mesesNome.indexOf(b.name))
+    return Object.entries(dadosPorMesAno)
+      .map(([chave, valor]) => {
+        const [ano, mes] = chave.split('-')
+        return {
+          name: `${mesesNome[parseInt(mes)]} ${ano}`,
+          value: valor,
+          sortKey: parseInt(ano) * 100 + parseInt(mes) // Para ordenação
+        }
+      })
+      .sort((a, b) => a.sortKey - b.sortKey)
   }
   
   // Para MENSAL ou outros, agrupa por DIA
@@ -403,25 +411,33 @@ function prepararDadosChartVendas(vendas: any[], tipo: 'valor' | 'count', tipoVi
 }
 
 function prepararDadosChartRelatorios(relatorios: any[], campo: string, tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total') {
-  // Se visão ANUAL ou TOTAL, agrupa por MÊS
+  // Se visão ANUAL ou TOTAL, agrupa por MÊS com ANO
   if (tipoVisao === 'anual' || tipoVisao === 'total') {
-    const dadosPorMes: Record<number, number> = {}
+    const dadosPorMesAno: Record<string, number> = {} // Formato: "2025-0", "2025-1", etc.
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
     relatorios.forEach(r => {
-      const mes = new Date(r.data).getMonth() // 0-11
-      if (!dadosPorMes[mes]) {
-        dadosPorMes[mes] = 0
+      const data = new Date(r.data)
+      const ano = data.getFullYear()
+      const mes = data.getMonth() // 0-11
+      const chave = `${ano}-${mes}`
+      
+      if (!dadosPorMesAno[chave]) {
+        dadosPorMesAno[chave] = 0
       }
-      dadosPorMes[mes] += r[campo]
+      dadosPorMesAno[chave] += r[campo]
     })
 
-    return Object.entries(dadosPorMes)
-      .map(([mes, valor]) => ({
-        name: mesesNome[parseInt(mes)],
-        value: valor
-      }))
-      .sort((a, b) => mesesNome.indexOf(a.name) - mesesNome.indexOf(b.name))
+    return Object.entries(dadosPorMesAno)
+      .map(([chave, valor]) => {
+        const [ano, mes] = chave.split('-')
+        return {
+          name: `${mesesNome[parseInt(mes)]} ${ano}`,
+          value: valor,
+          sortKey: parseInt(ano) * 100 + parseInt(mes) // Para ordenação
+        }
+      })
+      .sort((a, b) => a.sortKey - b.sortKey)
   }
   
   // Para MENSAL ou outros, agrupa por DIA
