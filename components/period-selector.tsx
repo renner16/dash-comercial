@@ -137,33 +137,67 @@ export function PeriodSelector({
           </div>
         )}
 
-        {/* Seletor de Semana (só aparece se for visão semanal) */}
-        {tipoVisao === 'semanal' && onSemanaChange && (
-          <Select 
-            value={semana?.toString() || '1'} 
-            onValueChange={(v) => onSemanaChange(parseInt(v))}
-          >
-            <SelectTrigger className="w-[180px] sm:w-[220px]">
-              <SelectValue placeholder="Semana" />
-            </SelectTrigger>
-            <SelectContent>
-              {semanasDoMes.length > 0 ? (
-                semanasDoMes.map((s) => (
-                  <SelectItem key={s.numero} value={s.numero.toString()}>
-                    Semana {s.numero} ({s.inicio}/{mes} - {s.fim}/{mes})
-                  </SelectItem>
-                ))
-              ) : (
-                <>
-                  <SelectItem value="1">Semana 1</SelectItem>
-                  <SelectItem value="2">Semana 2</SelectItem>
-                  <SelectItem value="3">Semana 3</SelectItem>
-                  <SelectItem value="4">Semana 4</SelectItem>
-                  <SelectItem value="5">Semana 5</SelectItem>
-                </>
+        {/* Seletor de Semana com Calendário (só aparece se for visão semanal) */}
+        {tipoVisao === 'semanal' && onSemanaChange && mes && ano && (
+          <div className="relative">
+            <DatePicker
+              selected={
+                semana && mes && ano
+                  ? (() => {
+                      // Encontrar o primeiro dia da semana selecionada
+                      const primeiraData = new Date(ano, mes - 1, 1)
+                      let diaAtual = 1
+                      let semanaAtual = 1
+                      
+                      while (semanaAtual < semana && diaAtual <= new Date(ano, mes, 0).getDate()) {
+                        const data = new Date(ano, mes - 1, diaAtual)
+                        if (data.getDay() === 6) { // Sábado = fim da semana
+                          semanaAtual++
+                        }
+                        diaAtual++
+                      }
+                      
+                      return new Date(ano, mes - 1, diaAtual)
+                    })()
+                  : null
+              }
+              onChange={(date) => {
+                if (date && onSemanaChange) {
+                  // Calcular qual semana do mês foi clicada
+                  const primeiroDiaMes = new Date(ano, mes - 1, 1)
+                  const diaDaSemanaInicio = primeiroDiaMes.getDay()
+                  const diaClicado = date.getDate()
+                  
+                  const diasAteSegundaSemana = 7 - diaDaSemanaInicio
+                  
+                  let numeroSemana = 1
+                  if (diaClicado > diasAteSegundaSemana) {
+                    const diasAposSegundaSemana = diaClicado - diasAteSegundaSemana
+                    numeroSemana = 2 + Math.floor((diasAposSegundaSemana - 1) / 7)
+                  }
+                  
+                  onSemanaChange(numeroSemana)
+                }
+              }}
+              locale="pt-BR"
+              dateFormat="'Semana' w"
+              showWeekNumbers
+              filterDate={(date) => {
+                // Mostrar apenas dias do mês selecionado
+                return date.getMonth() === mes - 1 && date.getFullYear() === ano
+              }}
+              minDate={new Date(ano, mes - 1, 1)}
+              maxDate={new Date(ano, mes, 0)}
+              className={cn(
+                "flex h-10 w-[180px] sm:w-[220px] rounded-md border border-input bg-background px-3 py-2 text-sm",
+                "ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2",
+                "focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                "cursor-pointer"
               )}
-            </SelectContent>
-          </Select>
+              placeholderText="Selecione uma semana"
+              calendarClassName="week-picker"
+            />
+          </div>
         )}
 
         {/* Seletor de Mês (aparece em mensal e semanal) */}
