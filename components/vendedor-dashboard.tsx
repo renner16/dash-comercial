@@ -97,19 +97,12 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   }))
 
   // Preparar dados para gráficos de vendas
-  const chartDataFaturamento = prepararDadosChart(vendasConfirmadas, 'valor')
-  const chartDataQuantidade = prepararDadosChart(vendasConfirmadas, 'count')
+  const chartDataFaturamento = prepararDadosChart(vendasConfirmadas, 'valor', tipoVisao)
+  const chartDataQuantidade = prepararDadosChart(vendasConfirmadas, 'count', tipoVisao)
 
   // Preparar dados para gráficos de relatórios
-  const chartDataLeads = relatorios.map(r => ({
-    name: new Date(r.data).getDate().toString(),
-    value: r.leadsRecebidos
-  })).sort((a, b) => parseInt(a.name) - parseInt(b.name))
-
-  const chartDataRespostas = relatorios.map(r => ({
-    name: new Date(r.data).getDate().toString(),
-    value: r.respostasEnviadas
-  })).sort((a, b) => parseInt(a.name) - parseInt(b.name))
+  const chartDataLeads = prepararDadosChartRelatorios(relatorios, 'leadsRecebidos', tipoVisao)
+  const chartDataRespostas = prepararDadosChartRelatorios(relatorios, 'respostasEnviadas', tipoVisao)
 
   // Calcular dados de leads do dia (para visão diária)
   const leadsRecebidosDia = relatorios.reduce((sum, r) => sum + r.leadsRecebidos, 0)
@@ -488,7 +481,29 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   )
 }
 
-function prepararDadosChart(vendas: any[], tipo: 'valor' | 'count') {
+function prepararDadosChart(vendas: any[], tipo: 'valor' | 'count', tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total') {
+  // Se visão ANUAL, agrupa por MÊS
+  if (tipoVisao === 'anual') {
+    const dadosPorMes: Record<number, number> = {}
+    const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    
+    vendas.forEach(v => {
+      const mes = new Date(v.data).getMonth() // 0-11
+      if (!dadosPorMes[mes]) {
+        dadosPorMes[mes] = 0
+      }
+      dadosPorMes[mes] += tipo === 'valor' ? v.valor : 1
+    })
+
+    return Object.entries(dadosPorMes)
+      .map(([mes, valor]) => ({
+        name: mesesNome[parseInt(mes)],
+        value: valor
+      }))
+      .sort((a, b) => mesesNome.indexOf(a.name) - mesesNome.indexOf(b.name))
+  }
+  
+  // Para MENSAL ou outros, agrupa por DIA
   const dadosPorDia: Record<number, number> = {}
   
   vendas.forEach(v => {
@@ -505,6 +520,35 @@ function prepararDadosChart(vendas: any[], tipo: 'valor' | 'count') {
       value: valor
     }))
     .sort((a, b) => parseInt(a.name) - parseInt(b.name))
+}
+
+function prepararDadosChartRelatorios(relatorios: any[], campo: 'leadsRecebidos' | 'respostasEnviadas', tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total') {
+  // Se visão ANUAL, agrupa por MÊS
+  if (tipoVisao === 'anual') {
+    const dadosPorMes: Record<number, number> = {}
+    const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    
+    relatorios.forEach(r => {
+      const mes = new Date(r.data).getMonth() // 0-11
+      if (!dadosPorMes[mes]) {
+        dadosPorMes[mes] = 0
+      }
+      dadosPorMes[mes] += r[campo]
+    })
+
+    return Object.entries(dadosPorMes)
+      .map(([mes, valor]) => ({
+        name: mesesNome[parseInt(mes)],
+        value: valor
+      }))
+      .sort((a, b) => mesesNome.indexOf(a.name) - mesesNome.indexOf(b.name))
+  }
+  
+  // Para MENSAL ou outros, agrupa por DIA
+  return relatorios.map(r => ({
+    name: new Date(r.data).getDate().toString(),
+    value: r[campo]
+  })).sort((a, b) => parseInt(a.name) - parseInt(b.name))
 }
 
 
