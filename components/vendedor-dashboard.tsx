@@ -823,14 +823,14 @@ function getWeekOfMonth(date: Date): number {
 function prepararDadosChart(
   vendas: any[], 
   tipo: 'valor' | 'count', 
-  tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total',
+  tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total' | 'personalizado',
   periodoGrafico: 'dia' | 'semana' | 'mes' = 'dia',
   semanaSelecionada: number | null = null,
   mesSelecionado: number | null = null,
   anoSelecionado: number | null = null
 ) {
-  // Se período do gráfico for MÊS ou for visão ANUAL/TOTAL, agrupa por MÊS com ANO
-  if (periodoGrafico === 'mes' || tipoVisao === 'anual' || tipoVisao === 'total') {
+  // Se período do gráfico for MÊS ou for visão ANUAL/TOTAL/PERSONALIZADO, agrupa por MÊS com ANO
+  if (periodoGrafico === 'mes' || tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado') {
     const dadosPorMesAno: Record<string, number> = {}
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
@@ -988,14 +988,14 @@ function prepararDadosChart(
 function prepararDadosChartRelatorios(
   relatorios: any[], 
   campo: 'leadsRecebidos' | 'respostasEnviadas', 
-  tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total',
+  tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total' | 'personalizado',
   periodoGrafico: 'dia' | 'semana' | 'mes' = 'dia',
   semanaSelecionada: number | null = null,
   mesSelecionado: number | null = null,
   anoSelecionado: number | null = null
 ) {
-  // Se período do gráfico for MÊS ou for visão ANUAL/TOTAL, agrupa por MÊS com ANO
-  if (periodoGrafico === 'mes' || tipoVisao === 'anual' || tipoVisao === 'total') {
+  // Se período do gráfico for MÊS ou for visão ANUAL/TOTAL/PERSONALIZADO, agrupa por MÊS com ANO
+  if (periodoGrafico === 'mes' || tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado') {
     const dadosPorMesAno: Record<string, number> = {}
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
