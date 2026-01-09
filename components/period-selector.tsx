@@ -212,7 +212,7 @@ export function PeriodSelector({
           </div>
         )}
 
-        {/* Seletor de Mês (aparece apenas em mensal) - Calendário padrão */}
+        {/* Seletor de Mês (aparece apenas em mensal) - Grade de meses */}
         {tipoVisao === 'mensal' && (
           <div className="relative">
             <DatePicker
@@ -225,6 +225,7 @@ export function PeriodSelector({
               }}
               locale="pt-BR"
               dateFormat="MMMM yyyy"
+              showMonthYearPicker
               className={cn(
                 "flex h-10 w-[180px] sm:w-[220px] rounded-md border border-input bg-background px-3 py-2 text-sm",
                 "ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2",
