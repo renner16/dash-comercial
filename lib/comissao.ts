@@ -1,6 +1,14 @@
 // Sistema de cálculo de comissão baseado nas regras do Cultura Builder
 
-export type Cargo = 'JUNIOR' | 'PLENO'
+export type Cargo = 'JUNIOR' | 'PLENO' | 'SENIOR' | 'GERENTE'
+
+// Salários fixos por cargo (baseado no Plano de Carreira)
+const SALARIOS_FIXOS: Record<Cargo, number> = {
+  JUNIOR: 1500.00,
+  PLENO: 2200.00,
+  SENIOR: 2700.00,
+  GERENTE: 3500.00,
+}
 
 // Faixas de faturamento mensal
 const FAIXAS = [
@@ -12,8 +20,10 @@ const FAIXAS = [
 
 // Percentuais por cargo e faixa
 const PERCENTUAIS: Record<Cargo, number[]> = {
-  JUNIOR: [0.02, 0.03, 0.04, 0.05], // 2%, 3%, 4%, 5%
-  PLENO: [0.06, 0.07, 0.08, 0.09],  // 6%, 7%, 8%, 9%
+  JUNIOR: [0.02, 0.03, 0.04, 0.05],   // 2%, 3%, 4%, 5%
+  PLENO: [0.06, 0.07, 0.08, 0.09],    // 6%, 7%, 8%, 9%
+  SENIOR: [0.09, 0.10, 0.11, 0.12],   // 9%, 10%, 11%, 12%
+  GERENTE: [0.12, 0.13, 0.14, 0.15],  // 12%, 13%, 14%, 15%
 }
 
 /**
@@ -63,6 +73,22 @@ export function getInfoFaixa(cargo: Cargo, faturamento: number) {
       ? `Acima de R$ ${faixaInfo.min.toLocaleString('pt-BR')}`
       : `R$ ${faixaInfo.min.toLocaleString('pt-BR')} - R$ ${faixaInfo.max.toLocaleString('pt-BR')}`
   }
+}
+
+/**
+ * Retorna o salário fixo baseado no cargo
+ */
+export function getSalarioFixo(cargo: Cargo): number {
+  return SALARIOS_FIXOS[cargo] || 0
+}
+
+/**
+ * Calcula a remuneração total (salário fixo + comissão)
+ */
+export function calcularRemuneracaoTotal(cargo: Cargo, faturamentoMensal: number): number {
+  const salarioFixo = getSalarioFixo(cargo)
+  const comissao = calcularComissao(cargo, faturamentoMensal)
+  return salarioFixo + comissao
 }
 
 

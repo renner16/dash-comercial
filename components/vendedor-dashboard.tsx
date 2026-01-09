@@ -11,7 +11,7 @@ import { PeriodSelector } from '@/components/period-selector'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { calcularComissao, getInfoFaixa, Cargo } from '@/lib/comissao'
+import { calcularComissao, getInfoFaixa, getSalarioFixo, calcularRemuneracaoTotal, Cargo } from '@/lib/comissao'
 import { exportarParaCSV, formatarVendasParaExport, formatarRelatoriosParaExport } from '@/lib/export-utils'
 
 interface VendedorDashboardProps {
@@ -84,8 +84,10 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const qtdVendas = vendasConfirmadas.length
   const ticketMedio = qtdVendas > 0 ? faturamento / qtdVendas : 0
   
-  // Calcular comissão
+  // Calcular comissão e remuneração
   const comissao = calcularComissao(vendedor.cargo as Cargo, faturamento)
+  const salarioFixo = getSalarioFixo(vendedor.cargo as Cargo)
+  const salarioTotal = calcularRemuneracaoTotal(vendedor.cargo as Cargo, faturamento)
   const infoFaixa = getInfoFaixa(vendedor.cargo as Cargo, faturamento)
 
   // Adicionar comissão estimada nas vendas
@@ -258,7 +260,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       </div>
 
       {/* KPIs */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <KPICard
           title="Faturamento"
           value={formatCurrency(faturamento)}
@@ -282,6 +284,23 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
           subtitle={`Alíquota: ${infoFaixa.percentualFormatado}`}
           icon={Percent}
         />
+        <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Salário Total
+            </CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(salarioTotal)}</div>
+            <p className="text-xs text-green-100 mt-1">
+              Fixo: {formatCurrency(salarioFixo)} + Comissão: {formatCurrency(comissao)}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* KPIs de Leads - Visão Diária */}
