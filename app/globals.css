@@ -130,6 +130,13 @@
 .rdp-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.rdp-month_grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .rdp-head_row {
@@ -142,6 +149,18 @@
   font-size: 0.8rem;
   font-weight: normal;
   text-align: center;
+}
+
+.rdp-weekday {
+  color: hsl(var(--muted-foreground));
+  width: var(--rdp-cell-size);
+  min-width: var(--rdp-cell-size);
+  max-width: var(--rdp-cell-size);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: center;
+  text-transform: lowercase;
+  padding: 0;
 }
 
 .rdp-row {
