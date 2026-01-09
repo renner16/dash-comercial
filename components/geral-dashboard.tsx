@@ -362,8 +362,8 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 }
 
 function prepararDadosChartVendas(vendas: any[], tipo: 'valor' | 'count', tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total') {
-  // Se visão ANUAL, agrupa por MÊS
-  if (tipoVisao === 'anual') {
+  // Se visão ANUAL ou TOTAL, agrupa por MÊS
+  if (tipoVisao === 'anual' || tipoVisao === 'total') {
     const dadosPorMes: Record<number, number> = {}
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
@@ -403,8 +403,8 @@ function prepararDadosChartVendas(vendas: any[], tipo: 'valor' | 'count', tipoVi
 }
 
 function prepararDadosChartRelatorios(relatorios: any[], campo: string, tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total') {
-  // Se visão ANUAL, agrupa por MÊS
-  if (tipoVisao === 'anual') {
+  // Se visão ANUAL ou TOTAL, agrupa por MÊS
+  if (tipoVisao === 'anual' || tipoVisao === 'total') {
     const dadosPorMes: Record<number, number> = {}
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
