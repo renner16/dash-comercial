@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { DollarSign, ShoppingCart, TrendingUp, Percent, Plus, Download } from 'lucide-react'
 import { KPICard } from '@/components/kpi-card'
+import { ProjecaoCard } from '@/components/projecao-card'
 import { VendasTable } from '@/components/vendas-table'
 import { VendaDialog } from '@/components/venda-dialog'
 import { RelatorioDialog } from '@/components/relatorio-dialog'
@@ -247,6 +248,34 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     ? ((respostasEnviadasPeriodo / leadsRecebidosPeriodo) * 100).toFixed(1)
     : '0'
   
+  // Dados para projeção (apenas para visão mensal)
+  let dadosProjecao: { diasDecorridos: number; diasNoMes: number; proximaFaixa: { valor: number; percentual: string } | null } | null = null
+  
+  if (tipoVisao === 'mensal' && mes && ano) {
+    const hoje = new Date()
+    const mesAtual = hoje.getMonth() + 1
+    const anoAtual = hoje.getFullYear()
+    
+    // Só mostrar projeção se for o mês atual
+    if (mes === mesAtual && ano === anoAtual) {
+      const diaAtual = hoje.getDate()
+      const diasNoMesAtual = new Date(ano, mes, 0).getDate()
+      
+      // Encontrar próxima faixa
+      const FAIXAS = vendedor.cargo === 'JUNIOR' 
+        ? [{ valor: 40000, percentual: '3%' }, { valor: 50000, percentual: '4%' }, { valor: 60000, percentual: '5%' }]
+        : [{ valor: 40000, percentual: '7%' }, { valor: 50000, percentual: '8%' }, { valor: 60000, percentual: '9%' }]
+      
+      const proximaFaixa = FAIXAS.find(f => f.valor > faturamento)
+      
+      dadosProjecao = {
+        diasDecorridos: diaAtual,
+        diasNoMes: diasNoMesAtual,
+        proximaFaixa: proximaFaixa || null
+      }
+    }
+  }
+
   // Texto do período para os KPIs de leads
   const textoPeriodo = tipoVisao === 'diario' 
     ? 'no dia' 
@@ -524,6 +553,16 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Projeção de Faturamento (apenas para mês atual) */}
+      {dadosProjecao && (
+        <ProjecaoCard
+          faturamentoAtual={faturamento}
+          diasDecorridos={dadosProjecao.diasDecorridos}
+          diasNoMes={dadosProjecao.diasNoMes}
+          proximaFaixa={dadosProjecao.proximaFaixa}
+        />
       )}
 
       {/* KPIs de Leads - Sempre Visível */}
