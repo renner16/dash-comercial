@@ -203,27 +203,33 @@ export function PeriodSelector({
           </div>
         )}
 
-        {/* Seletor de Mês (aparece apenas em mensal) */}
+        {/* Seletor de Mês (aparece apenas em mensal) - Calendário de meses */}
         {tipoVisao === 'mensal' && (
-          <Select 
-            value={mes?.toString() || ''} 
-            onValueChange={(v) => onMesChange(parseInt(v))}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Selecione o mês" />
-            </SelectTrigger>
-            <SelectContent>
-              {meses.map((m) => (
-                <SelectItem key={m.value} value={m.value.toString()}>
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative">
+            <DatePicker
+              selected={mes && ano ? new Date(ano, mes - 1, 1) : null}
+              onChange={(date: Date | null) => {
+                if (date && onMesChange && onAnoChange) {
+                  onMesChange(date.getMonth() + 1)
+                  onAnoChange(date.getFullYear())
+                }
+              }}
+              locale="pt-BR"
+              dateFormat="MMMM yyyy"
+              showMonthYearPicker
+              className={cn(
+                "flex h-10 w-[180px] sm:w-[220px] rounded-md border border-input bg-background px-3 py-2 text-sm",
+                "ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2",
+                "focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                "cursor-pointer"
+              )}
+              placeholderText="Clique para selecionar o mês"
+            />
+          </div>
         )}
 
-        {/* Seletor de Ano (aparece em mensal e anual) */}
-        {(tipoVisao === 'mensal' || tipoVisao === 'anual') && (
+        {/* Seletor de Ano (aparece apenas em anual) */}
+        {tipoVisao === 'anual' && (
           <Select value={ano.toString()} onValueChange={(v) => onAnoChange(parseInt(v))}>
             <SelectTrigger className="w-[100px]">
               <SelectValue />

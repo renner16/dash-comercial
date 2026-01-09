@@ -140,7 +140,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
 
   // Determinar período real do gráfico
   const periodoReal = periodoGrafico === 'auto' 
-    ? (tipoVisao === 'semanal' ? 'semana' : tipoVisao === 'mensal' || tipoVisao === 'diario' ? 'dia' : tipoVisao === 'anual' || tipoVisao === 'total' ? 'mes' : 'dia')
+    ? (tipoVisao === 'semanal' ? 'semana' : tipoVisao === 'mensal' ? 'mes' : tipoVisao === 'diario' ? 'dia' : tipoVisao === 'anual' || tipoVisao === 'total' ? 'mes' : 'dia')
     : periodoGrafico === 'semana' ? 'semana' : periodoGrafico === 'mes' ? 'mes' : 'dia'
 
   // Filtrar vendas confirmadas dos dados de gráficos
