@@ -1,0 +1,15 @@
+# Arquivos a serem ignorados no deploy Vercel
+
+# Node modules são instalados no build
+node_modules
+
+# Arquivos de desenvolvimento
+.env.local
+.env*.local
+
+# Arquivos de teste
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
