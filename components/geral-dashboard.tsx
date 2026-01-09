@@ -237,26 +237,27 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Visão Geral do Time</h2>
-          <p className="text-muted-foreground">
-            Consolidado de todos os vendedores
-          </p>
-        </div>
-        <PeriodSelector 
-          mes={mes} 
-          ano={ano}
-          dia={dia}
-          semana={semana}
-          tipoVisao={tipoVisao}
-          onMesChange={setMes} 
-          onAnoChange={setAno}
-          onDiaChange={setDia}
-          onSemanaChange={setSemana}
-          onTipoVisaoChange={setTipoVisao}
-        />
+      {/* Título */}
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Visão Geral do Time</h2>
+        <p className="text-muted-foreground">
+          Consolidado de todos os vendedores
+        </p>
       </div>
+
+      {/* Seletor de Período */}
+      <PeriodSelector 
+        mes={mes} 
+        ano={ano}
+        dia={dia}
+        semana={semana}
+        tipoVisao={tipoVisao}
+        onMesChange={setMes} 
+        onAnoChange={setAno}
+        onDiaChange={setDia}
+        onSemanaChange={setSemana}
+        onTipoVisaoChange={setTipoVisao}
+      />
 
       {/* KPIs Gerais - SEM COMISSÃO */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
