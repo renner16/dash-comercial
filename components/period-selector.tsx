@@ -1,13 +1,14 @@
 'use client'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import DatePicker, { registerLocale } from 'react-datepicker'
 import { cn } from '@/lib/utils'
+
+// Registrar locale português
+registerLocale('pt-BR', ptBR)
 
 interface PeriodSelectorProps {
   mes: number | null
@@ -110,35 +111,30 @@ export function PeriodSelector({
 
         {/* Seletor de Data com Calendário (só aparece se for visão diária) */}
         {tipoVisao === 'diario' && (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-[200px] justify-start text-left font-normal",
-                  !dia && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dia ? format(new Date(dia + 'T00:00:00'), "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={dia ? new Date(dia + 'T00:00:00') : undefined}
-                onSelect={(date) => {
-                  if (date) {
-                    const year = date.getFullYear()
-                    const month = String(date.getMonth() + 1).padStart(2, '0')
-                    const day = String(date.getDate()).padStart(2, '0')
-                    onDiaChange(`${year}-${month}-${day}`)
-                  }
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="relative">
+            <DatePicker
+              selected={dia ? new Date(dia + 'T00:00:00') : null}
+              onChange={(date) => {
+                if (date) {
+                  const year = date.getFullYear()
+                  const month = String(date.getMonth() + 1).padStart(2, '0')
+                  const day = String(date.getDate()).padStart(2, '0')
+                  onDiaChange(`${year}-${month}-${day}`)
+                }
+              }}
+              locale="pt-BR"
+              dateFormat="dd/MM/yyyy"
+              className={cn(
+                "flex h-10 w-[200px] rounded-md border border-input bg-background px-3 py-2 text-sm",
+                "ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium",
+                "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2",
+                "focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              )}
+              placeholderText="Selecione uma data"
+              showPopperArrow={false}
+              calendarClassName="shadow-lg rounded-lg"
+            />
+          </div>
         )}
 
         {/* Seletor de Semana (só aparece se for visão semanal) */}
