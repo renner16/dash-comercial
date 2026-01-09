@@ -37,6 +37,8 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const [relatorios, setRelatorios] = useState<any[]>([]) // Dados do período exato
   const [vendasGraficos, setVendasGraficos] = useState<any[]>([]) // Dados expandidos para gráficos
   const [relatoriosGraficos, setRelatoriosGraficos] = useState<any[]>([]) // Dados expandidos para gráficos
+  const [vendasPeriodoAnterior, setVendasPeriodoAnterior] = useState<any[]>([]) // Para comparação
+  const [relatoriosPeriodoAnterior, setRelatoriosPeriodoAnterior] = useState<any[]>([]) // Para comparação
   const [loading, setLoading] = useState(true)
   const [vendaDialogOpen, setVendaDialogOpen] = useState(false)
   const [relatorioDialogOpen, setRelatorioDialogOpen] = useState(false)
@@ -48,13 +50,20 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     try {
       let params = `vendedorId=${vendedor.id}`
       let paramsGraficos = `vendedorId=${vendedor.id}` // Params separados para gráficos
+      let paramsPeriodoAnterior = `vendedorId=${vendedor.id}` // Params para período anterior
       
       if (tipoVisao === 'diario' && dia) {
         // KPIs: apenas o dia selecionado
         params += `&dia=${dia}`
         
-        // Gráficos: mês inteiro para contexto
+        // Período anterior: dia anterior
         const dataSelecionada = new Date(dia + 'T00:00:00')
+        const dataAnterior = new Date(dataSelecionada)
+        dataAnterior.setDate(dataAnterior.getDate() - 1)
+        const diaAnterior = dataAnterior.toISOString().split('T')[0]
+        paramsPeriodoAnterior += `&dia=${diaAnterior}`
+        
+        // Gráficos: mês inteiro para contexto
         const mesData = dataSelecionada.getMonth() + 1
         const anoData = dataSelecionada.getFullYear()
         paramsGraficos += `&mes=${mesData}&ano=${anoData}`
@@ -62,11 +71,37 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         // KPIs: apenas a semana selecionada
         params += `&mes=${mes}&ano=${ano}&semana=${semana}`
         
+        // Período anterior: semana anterior
+        let mesAnterior = mes
+        let anoAnterior = ano
+        let semanaAnterior = semana - 1
+        if (semanaAnterior < 1) {
+          // Se era primeira semana, ir para última semana do mês anterior
+          mesAnterior = mes - 1
+          if (mesAnterior < 1) {
+            mesAnterior = 12
+            anoAnterior = ano - 1
+          }
+          // Calcular quantas semanas tem o mês anterior
+          const diasNoMesAnterior = new Date(anoAnterior, mesAnterior, 0).getDate()
+          semanaAnterior = Math.ceil(diasNoMesAnterior / 7)
+        }
+        paramsPeriodoAnterior += `&mes=${mesAnterior}&ano=${anoAnterior}&semana=${semanaAnterior}`
+        
         // Gráficos: mês inteiro para comparar semanas
         paramsGraficos += `&mes=${mes}&ano=${ano}`
       } else if (tipoVisao === 'mensal' && mes) {
         // KPIs: apenas o mês selecionado
         params += `&mes=${mes}&ano=${ano}`
+        
+        // Período anterior: mês anterior
+        let mesAnterior = mes - 1
+        let anoAnterior = ano
+        if (mesAnterior < 1) {
+          mesAnterior = 12
+          anoAnterior = ano - 1
+        }
+        paramsPeriodoAnterior += `&mes=${mesAnterior}&ano=${anoAnterior}`
         
         // Gráficos: range expandido para contexto
         const hoje = new Date()
@@ -88,6 +123,9 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         // KPIs e Gráficos: mesmo ano
         params += `&ano=${ano}`
         paramsGraficos += `&ano=${ano}`
+        
+        // Período anterior: ano anterior
+        paramsPeriodoAnterior += `&ano=${ano - 1}`
       } else if (tipoVisao === 'personalizado' && dataInicio && dataFim) {
         // Período personalizado: usar dataInicio e dataFim
         const inicio = new Date(dataInicio + 'T00:00:00')
@@ -100,23 +138,29 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         paramsGraficos = params
       }
       
-      // Buscar dados do período exato (KPIs) e dados expandidos (gráficos)
-      const [vendasRes, relatoriosRes, vendasGraficosRes, relatoriosGraficosRes] = await Promise.all([
+      // Buscar dados do período exato (KPIs), expandidos (gráficos) e período anterior (comparação)
+      const [vendasRes, relatoriosRes, vendasGraficosRes, relatoriosGraficosRes, vendasAnteriorRes, relatoriosAnteriorRes] = await Promise.all([
         fetch(`/api/vendas?${params}`),
         fetch(`/api/relatorios?${params}`),
         fetch(`/api/vendas?${paramsGraficos}`),
-        fetch(`/api/relatorios?${paramsGraficos}`)
+        fetch(`/api/relatorios?${paramsGraficos}`),
+        fetch(`/api/vendas?${paramsPeriodoAnterior}`),
+        fetch(`/api/relatorios?${paramsPeriodoAnterior}`)
       ])
       
       const vendasData = await vendasRes.json()
       const relatoriosData = await relatoriosRes.json()
       const vendasGraficosData = await vendasGraficosRes.json()
       const relatoriosGraficosData = await relatoriosGraficosRes.json()
+      const vendasAnteriorData = await vendasAnteriorRes.json()
+      const relatoriosAnteriorData = await relatoriosAnteriorRes.json()
       
       setVendas(vendasData)
       setRelatorios(relatoriosData)
       setVendasGraficos(vendasGraficosData)
       setRelatoriosGraficos(relatoriosGraficosData)
+      setVendasPeriodoAnterior(vendasAnteriorData)
+      setRelatoriosPeriodoAnterior(relatoriosAnteriorData)
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
     } finally {
@@ -128,7 +172,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     carregarDados()
   }, [mes, ano, dia, semana, tipoVisao, dataInicio, dataFim, vendedor.id])
 
-  // Calcular KPIs
+  // Calcular KPIs do período atual
   const vendasConfirmadas = vendas.filter(v => v.status === 'CONFIRMADA')
   const faturamento = vendasConfirmadas.reduce((sum, v) => sum + v.valor, 0)
   const qtdVendas = vendasConfirmadas.length
@@ -139,6 +183,39 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const salarioFixo = getSalarioFixo(vendedor.cargo as Cargo)
   const salarioTotal = calcularRemuneracaoTotal(vendedor.cargo as Cargo, faturamento)
   const infoFaixa = getInfoFaixa(vendedor.cargo as Cargo, faturamento)
+
+  // Calcular KPIs do período anterior (para comparação)
+  const vendasConfirmadasAnterior = vendasPeriodoAnterior.filter(v => v.status === 'CONFIRMADA')
+  const faturamentoAnterior = vendasConfirmadasAnterior.reduce((sum, v) => sum + v.valor, 0)
+  const qtdVendasAnterior = vendasConfirmadasAnterior.length
+  const ticketMedioAnterior = qtdVendasAnterior > 0 ? faturamentoAnterior / qtdVendasAnterior : 0
+  const comissaoAnterior = calcularComissao(vendedor.cargo as Cargo, faturamentoAnterior)
+
+  // Calcular KPIs de relatórios
+  const leadsRecebidos = relatorios.reduce((sum, r) => sum + r.leadsRecebidos, 0)
+  const respostasEnviadas = relatorios.reduce((sum, r) => sum + r.respostasEnviadas, 0)
+  const leadsRecebidosAnterior = relatoriosPeriodoAnterior.reduce((sum, r) => sum + r.leadsRecebidos, 0)
+  const respostasEnviadasAnterior = relatoriosPeriodoAnterior.reduce((sum, r) => sum + r.respostasEnviadas, 0)
+
+  // Calcular variações percentuais
+  const calcularVariacao = (atual: number, anterior: number) => {
+    if (anterior === 0) return atual > 0 ? 100 : 0
+    return ((atual - anterior) / anterior) * 100
+  }
+
+  const variacaoFaturamento = calcularVariacao(faturamento, faturamentoAnterior)
+  const variacaoVendas = calcularVariacao(qtdVendas, qtdVendasAnterior)
+  const variacaoTicket = calcularVariacao(ticketMedio, ticketMedioAnterior)
+  const variacaoComissao = calcularVariacao(comissao, comissaoAnterior)
+  const variacaoLeads = calcularVariacao(leadsRecebidos, leadsRecebidosAnterior)
+  const variacaoRespostas = calcularVariacao(respostasEnviadas, respostasEnviadasAnterior)
+
+  // Label do período de comparação
+  const labelComparacao = tipoVisao === 'diario' ? 'vs dia anterior' 
+    : tipoVisao === 'semanal' ? 'vs semana anterior'
+    : tipoVisao === 'mensal' ? 'vs mês anterior'
+    : tipoVisao === 'anual' ? 'vs ano anterior'
+    : ''
 
   // Adicionar comissão estimada nas vendas
   const vendasComComissao = vendas.map(v => ({
@@ -346,23 +423,43 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
           value={formatCurrency(faturamento)}
           subtitle={infoFaixa.descricao}
           icon={DollarSign}
+          trend={tipoVisao !== 'total' && tipoVisao !== 'personalizado' ? {
+            value: variacaoFaturamento,
+            isPositive: variacaoFaturamento >= 0,
+            label: labelComparacao
+          } : undefined}
         />
         <KPICard
           title="Vendas Confirmadas"
           value={qtdVendas.toString()}
           subtitle="No período"
           icon={ShoppingCart}
+          trend={tipoVisao !== 'total' && tipoVisao !== 'personalizado' ? {
+            value: variacaoVendas,
+            isPositive: variacaoVendas >= 0,
+            label: labelComparacao
+          } : undefined}
         />
         <KPICard
           title="Ticket Médio"
           value={formatCurrency(ticketMedio)}
           icon={TrendingUp}
+          trend={tipoVisao !== 'total' && tipoVisao !== 'personalizado' ? {
+            value: variacaoTicket,
+            isPositive: variacaoTicket >= 0,
+            label: labelComparacao
+          } : undefined}
         />
         <KPICard
           title="Comissão"
           value={formatCurrency(comissao)}
           subtitle={`Alíquota: ${infoFaixa.percentualFormatado}`}
           icon={Percent}
+          trend={tipoVisao !== 'total' && tipoVisao !== 'personalizado' ? {
+            value: variacaoComissao,
+            isPositive: variacaoComissao >= 0,
+            label: labelComparacao
+          } : undefined}
         />
         <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -448,6 +545,17 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
             <p className="text-xs text-muted-foreground mt-1 capitalize">
               {textoPeriodo}
             </p>
+            {tipoVisao !== 'total' && tipoVisao !== 'personalizado' && (
+              <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
+                variacaoLeads === 0 
+                  ? 'text-muted-foreground' 
+                  : variacaoLeads >= 0 
+                    ? 'text-green-600 dark:text-green-500' 
+                    : 'text-red-600 dark:text-red-500'
+              }`}>
+                {variacaoLeads === 0 ? '—' : `${variacaoLeads >= 0 ? '+' : ''}${variacaoLeads.toFixed(1)}%`} {labelComparacao}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -465,6 +573,17 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
             <p className="text-xs text-muted-foreground mt-1 capitalize">
               {textoPeriodo}
             </p>
+            {tipoVisao !== 'total' && tipoVisao !== 'personalizado' && (
+              <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
+                variacaoRespostas === 0 
+                  ? 'text-muted-foreground' 
+                  : variacaoRespostas >= 0 
+                    ? 'text-green-600 dark:text-green-500' 
+                    : 'text-red-600 dark:text-red-500'
+              }`}>
+                {variacaoRespostas === 0 ? '—' : `${variacaoRespostas >= 0 ? '+' : ''}${variacaoRespostas.toFixed(1)}%`} {labelComparacao}
+              </div>
+            )}
           </CardContent>
         </Card>
 

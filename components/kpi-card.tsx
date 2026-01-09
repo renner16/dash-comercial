@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LucideIcon } from "lucide-react"
+import { LucideIcon, TrendingUp, TrendingDown, Minus } from "lucide-react"
 
 interface KPICardProps {
   title: string
@@ -7,8 +7,9 @@ interface KPICardProps {
   subtitle?: string
   icon?: LucideIcon
   trend?: {
-    value: string
+    value: number // Percentual de variação
     isPositive: boolean
+    label?: string // Ex: "vs mês anterior"
   }
 }
 
@@ -31,9 +32,25 @@ export function KPICard({ title, value, subtitle, icon: Icon, trend }: KPICardPr
           </p>
         )}
         {trend && (
-          <p className={`text-xs mt-1 ${trend.isPositive ? 'text-green-500' : 'text-red-500'}`}>
-            {trend.value}
-          </p>
+          <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
+            trend.value === 0 
+              ? 'text-muted-foreground' 
+              : trend.isPositive 
+                ? 'text-green-600 dark:text-green-500' 
+                : 'text-red-600 dark:text-red-500'
+          }`}>
+            {trend.value === 0 ? (
+              <Minus className="w-3 h-3" />
+            ) : trend.isPositive ? (
+              <TrendingUp className="w-3 h-3" />
+            ) : (
+              <TrendingDown className="w-3 h-3" />
+            )}
+            <span>
+              {trend.value === 0 ? 'Sem variação' : `${trend.isPositive ? '+' : ''}${trend.value.toFixed(1)}%`}
+              {trend.label && ` ${trend.label}`}
+            </span>
+          </div>
         )}
       </CardContent>
     </Card>
