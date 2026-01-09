@@ -56,6 +56,67 @@ export function PeriodSelector({
     return d.toLocaleDateString('pt-BR')
   }
 
+  // Calcular os intervalos de semanas (domingo a sábado) para o mês selecionado
+  const getSemanasDoMes = () => {
+    if (!mes || !ano) return []
+    
+    const primeiroDia = new Date(ano, mes - 1, 1)
+    const ultimoDia = new Date(ano, mes, 0)
+    const diasNoMes = ultimoDia.getDate()
+    
+    const semanas: Array<{ numero: number; inicio: number; fim: number; label: string }> = []
+    
+    let diaAtual = 1
+    let numeroSemana = 1
+    
+    // Encontrar o primeiro domingo (ou começar do dia 1)
+    let diaDaSemanaInicial = primeiroDia.getDay() // 0=domingo
+    
+    // Semana 1: do dia 1 até o primeiro sábado
+    let primeiroDomingo = diaDaSemanaInicial === 0 ? 1 : (8 - diaDaSemanaInicial)
+    let primeiroSabado = primeiroDomingo + 6
+    if (primeiroDomingo > 1) {
+      // Semana parcial
+      primeiroSabado = primeiroDomingo - 1
+      primeiroDomingo = 1
+    }
+    
+    while (diaAtual <= diasNoMes) {
+      const inicio = diaAtual
+      const fim = Math.min(diaAtual + 6, diasNoMes)
+      
+      // Ajustar para domingo-sábado
+      if (numeroSemana === 1 && diaDaSemanaInicial !== 0) {
+        // Primeira semana parcial
+        const fimPrimeiraSemana = Math.min(primeiroSabado, diasNoMes)
+        semanas.push({
+          numero: numeroSemana,
+          inicio: 1,
+          fim: fimPrimeiraSemana,
+          label: `Semana ${numeroSemana} (${1}-${fimPrimeiraSemana})`
+        })
+        diaAtual = fimPrimeiraSemana + 1
+      } else {
+        // Semanas completas
+        const fimSemana = Math.min(inicio + 6, diasNoMes)
+        semanas.push({
+          numero: numeroSemana,
+          inicio,
+          fim: fimSemana,
+          label: `Semana ${numeroSemana} (${inicio}-${fimSemana})`
+        })
+        diaAtual = fimSemana + 1
+      }
+      
+      numeroSemana++
+      if (numeroSemana > 6) break // Máximo 6 semanas
+    }
+    
+    return semanas
+  }
+
+  const semanasDoMes = getSemanasDoMes()
+
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 bg-card p-4 rounded-lg border">
       <CalendarIcon className="w-5 h-5 text-muted-foreground hidden sm:block" />
@@ -114,15 +175,15 @@ export function PeriodSelector({
             value={semana?.toString() || '1'} 
             onValueChange={(v) => onSemanaChange(parseInt(v))}
           >
-            <SelectTrigger className="w-[160px] sm:w-[180px]">
+            <SelectTrigger className="w-[180px] sm:w-[220px]">
               <SelectValue placeholder="Semana" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">Semana 1 (1-7)</SelectItem>
-              <SelectItem value="2">Semana 2 (8-14)</SelectItem>
-              <SelectItem value="3">Semana 3 (15-21)</SelectItem>
-              <SelectItem value="4">Semana 4 (22-28)</SelectItem>
-              <SelectItem value="5">Semana 5 (29-31)</SelectItem>
+              {semanasDoMes.map(s => (
+                <SelectItem key={s.numero} value={s.numero.toString()}>
+                  {s.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         )}

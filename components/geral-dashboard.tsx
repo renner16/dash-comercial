@@ -415,13 +415,21 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   )
 }
 
+// Retorna o número da semana no mês (1-6) baseado em domingo=0 a sábado=6
 function getWeekOfMonth(date: Date): number {
-  const dia = date.getDate()
-  if (dia <= 7) return 1
-  if (dia <= 14) return 2
-  if (dia <= 21) return 3
-  if (dia <= 28) return 4
-  return 5
+  const primeiroDiaMes = new Date(date.getFullYear(), date.getMonth(), 1)
+  const primeiroDomingo = primeiroDiaMes.getDay() // 0=domingo, 1=segunda, etc
+  
+  // Calcular quantos dias desde o primeiro dia do mês
+  const diaAtual = date.getDate()
+  
+  // Ajustar para o primeiro domingo (se o mês não começa no domingo, a primeira semana é parcial)
+  const diasDesdeInicio = diaAtual + primeiroDomingo - 1
+  
+  // Calcular a semana (cada 7 dias = 1 semana)
+  const semana = Math.floor(diasDesdeInicio / 7) + 1
+  
+  return Math.min(semana, 6) // Limitar a 6 semanas
 }
 
 function prepararDadosChartVendas(
@@ -484,22 +492,28 @@ function prepararDadosChartVendas(
       2: 0,
       3: 0,
       4: 0,
-      5: 0
+      5: 0,
+      6: 0
     }
     
     vendas.forEach(v => {
       const data = new Date(v.data)
       const semana = getWeekOfMonth(data)
-      dadosPorSemana[semana] += tipo === 'valor' ? v.valor : 1
+      if (dadosPorSemana[semana] !== undefined) {
+        dadosPorSemana[semana] += tipo === 'valor' ? v.valor : 1
+      }
     })
 
-    return Object.entries(dadosPorSemana)
+    const semanasComDados = Object.entries(dadosPorSemana)
+      .filter(([_, valor]) => valor !== undefined)
       .map(([semana, valor]) => ({
         name: `Semana ${semana}`,
-        value: valor,
+        value: valor || 0,
         highlight: semanaSelecionada === parseInt(semana)
       }))
       .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]))
+    
+    return semanasComDados
   }
   
   // Para DIA, agrupa por DIA - mostrar TODOS os dias do mês
@@ -593,22 +607,28 @@ function prepararDadosChartRelatorios(
       2: 0,
       3: 0,
       4: 0,
-      5: 0
+      5: 0,
+      6: 0
     }
     
     relatorios.forEach(r => {
       const data = new Date(r.data)
       const semana = getWeekOfMonth(data)
-      dadosPorSemana[semana] += r[campo]
+      if (dadosPorSemana[semana] !== undefined) {
+        dadosPorSemana[semana] += r[campo]
+      }
     })
 
-    return Object.entries(dadosPorSemana)
+    const semanasComDados = Object.entries(dadosPorSemana)
+      .filter(([_, valor]) => valor !== undefined)
       .map(([semana, valor]) => ({
         name: `Semana ${semana}`,
-        value: valor,
+        value: valor || 0,
         highlight: semanaSelecionada === parseInt(semana)
       }))
       .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]))
+    
+    return semanasComDados
   }
   
   // Para DIA, agrupa por DIA - mostrar TODOS os dias do mês
