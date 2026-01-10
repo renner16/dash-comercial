@@ -260,7 +260,7 @@ export function PeriodSelector({
             <div className="relative">
               <DatePicker
                 selected={dataInicio ? new Date(dataInicio + 'T00:00:00') : null}
-                onChange={(date) => {
+                onChange={(date: Date | null) => {
                   if (date && onDataInicioChange) {
                     const year = date.getFullYear()
                     const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -283,7 +283,7 @@ export function PeriodSelector({
             <div className="relative">
               <DatePicker
                 selected={dataFim ? new Date(dataFim + 'T00:00:00') : null}
-                onChange={(date) => {
+                onChange={(date: Date | null) => {
                   if (date && onDataFimChange) {
                     const year = date.getFullYear()
                     const month = String(date.getMonth() + 1).padStart(2, '0')
