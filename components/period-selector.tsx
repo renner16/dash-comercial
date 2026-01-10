@@ -123,7 +123,7 @@ export function PeriodSelector({
           <div className="relative">
             <DatePicker
               selected={dia ? new Date(dia + 'T00:00:00') : null}
-              onChange={(date) => {
+              onChange={(date: Date | null) => {
                 if (date) {
                   const year = date.getFullYear()
                   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -170,7 +170,7 @@ export function PeriodSelector({
                     })()
                   : null
               }
-              onChange={(date) => {
+              onChange={(date: Date | null) => {
                 if (date && onSemanaChange) {
                   // Calcular qual semana do mês foi clicada
                   const primeiroDiaMes = new Date(ano, mes - 1, 1)
@@ -192,9 +192,9 @@ export function PeriodSelector({
               dateFormat="'Semana' w 'de' MMMM yyyy"
               showWeekNumbers
               openToDate={mes && ano ? new Date(ano, mes - 1, 1) : new Date()}
-              onMonthChange={(date) => {
+              onMonthChange={(date: Date | null) => {
                 // Atualizar mês e ano quando o usuário navega no calendário
-                if (onMesChange && onAnoChange) {
+                if (date && onMesChange && onAnoChange) {
                   onMesChange(date.getMonth() + 1)
                   onAnoChange(date.getFullYear())
                 }
