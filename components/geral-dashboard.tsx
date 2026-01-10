@@ -1,4 +1,5 @@
 'use client'
+// Build fix: corrige tipos TypeScript - adiciona personalizado
 
 import { useState, useEffect } from 'react'
 import { DollarSign, ShoppingCart, TrendingUp, Download } from 'lucide-react'
