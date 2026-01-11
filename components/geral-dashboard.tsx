@@ -9,6 +9,7 @@ import { SimpleLineChart, SimpleBarChart } from '@/components/charts'
 import { PeriodSelector } from '@/components/period-selector'
 import { ProjecaoCard } from '@/components/projecao-card'
 import { FunilConversao } from '@/components/funil-conversao'
+import { LeadsTable } from '@/components/leads-table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -710,6 +711,26 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
         respostasEnviadas={totalRespostasEnviadas}
         vendasFechadas={qtdVendasTotal}
       />
+
+      {/* Tabela de Leads */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Leads do Período</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LeadsTable
+            relatorios={relatorios.map(r => {
+              const vend = vendedores.find(v => v.id === r.vendedorId)
+              return {
+                ...r,
+                data: new Date(r.data),
+                vendedorNome: vend?.nome || 'Desconhecido'
+              }
+            })}
+            showVendedor={true}
+          />
+        </CardContent>
+      </Card>
 
       {/* Tabela de Vendas */}
       <Card>
