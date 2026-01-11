@@ -169,7 +169,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 
   // Calcular comissão e salário total da equipe
   // Agrupar vendas por vendedor para calcular comissão individual
-  const vendasPorVendedor = vendasConfirmadas.reduce((acc, venda) => {
+  const vendasPorVendedor: Record<string, any[]> = vendasConfirmadas.reduce((acc, venda) => {
     if (!acc[venda.vendedorId]) {
       acc[venda.vendedorId] = []
     }
@@ -183,9 +183,8 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   
   Object.entries(vendasPorVendedor).forEach(([vendedorId, vendasVendedor]) => {
     const vendedor = vendedores.find(v => v.id === vendedorId)
-    if (vendedor) {
-      const vendasArray = vendasVendedor as any[]
-      const faturamentoVendedor = vendasArray.reduce((sum, v) => sum + v.valor, 0)
+    if (vendedor && Array.isArray(vendasVendedor)) {
+      const faturamentoVendedor = vendasVendedor.reduce((sum: number, v: any) => sum + v.valor, 0)
       const comissaoVendedor = calcularComissao(vendedor.cargo as Cargo, faturamentoVendedor)
       const salarioFixoVendedor = getSalarioFixo(vendedor.cargo as Cargo)
       
