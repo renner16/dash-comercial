@@ -184,7 +184,8 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   Object.entries(vendasPorVendedor).forEach(([vendedorId, vendasVendedor]) => {
     const vendedor = vendedores.find(v => v.id === vendedorId)
     if (vendedor) {
-      const faturamentoVendedor = vendasVendedor.reduce((sum, v) => sum + v.valor, 0)
+      const vendasArray = vendasVendedor as any[]
+      const faturamentoVendedor = vendasArray.reduce((sum, v) => sum + v.valor, 0)
       const comissaoVendedor = calcularComissao(vendedor.cargo as Cargo, faturamentoVendedor)
       const salarioFixoVendedor = getSalarioFixo(vendedor.cargo as Cargo)
       
