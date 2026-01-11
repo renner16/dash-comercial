@@ -183,7 +183,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   
   // Iterar sobre as chaves do objeto ao invés de usar Object.entries para evitar problemas de tipagem
   for (const vendedorId in vendasPorVendedor) {
-    const vendasVendedor = vendasPorVendedor[vendedorId] as Array<{valor: number}>
+    const vendasVendedor: any[] = vendasPorVendedor[vendedorId]
     const vendedor = vendedores.find(v => v.id === vendedorId)
     if (vendedor && Array.isArray(vendasVendedor)) {
       const faturamentoVendedor = vendasVendedor.reduce((sum: number, v: any) => sum + v.valor, 0)
