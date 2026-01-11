@@ -310,6 +310,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
 
   const qtdVendasParaMeta = vendasParaMeta.length
   const faturamentoParaMeta = vendasParaMeta.reduce((sum, v) => sum + v.valor, 0)
+  const comissaoParaMeta = calcularComissao(vendedor.cargo as Cargo, faturamentoParaMeta)
 
   const metaAtual = metasPorCargo[vendedor.cargo] || metasPorCargo.PLENO
   const metaVendas = usarDadosSemanais ? metaAtual.semanal : metaAtual.mensal
@@ -731,6 +732,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       {dadosProjecao && (
         <ProjecaoCard
           faturamentoAtual={faturamentoParaMeta}
+          comissaoAtual={comissaoParaMeta}
           diasDecorridos={dadosProjecao.diasDecorridos}
           diasNoMes={dadosProjecao.diasNoMes}
           proximaFaixa={dadosProjecao.proximaFaixa}
