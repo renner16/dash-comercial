@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
-import { ArrowLeft, Users, TrendingUp, Database, FileText, Settings } from 'lucide-react'
+import { ArrowLeft, Users, TrendingUp, Database, FileText, Settings, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminPage() {
@@ -42,9 +42,11 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
-                Gerenciar Vendedores
-              </Button>
+              <Link href="/admin/vendedores" className="w-full">
+                <Button className="w-full" variant="outline">
+                  Gerenciar Vendedores
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -60,9 +62,11 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
-                Gerenciar Planos
-              </Button>
+              <Link href="/admin/planos-carreira" className="w-full">
+                <Button className="w-full" variant="outline">
+                  Gerenciar Planos
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -78,14 +82,11 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2">
-                <Button className="flex-1" variant="outline" size="sm">
-                  Exportar
+              <Link href="/admin/backup" className="w-full">
+                <Button className="w-full" variant="outline">
+                  Gerenciar Backup
                 </Button>
-                <Button className="flex-1" variant="outline" size="sm">
-                  Importar
-                </Button>
-              </div>
+              </Link>
             </CardContent>
           </Card>
 
@@ -101,9 +102,11 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
-                Ver Relatórios
-              </Button>
+              <Link href="/admin/relatorios" className="w-full">
+                <Button className="w-full" variant="outline">
+                  Ver Relatórios
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -119,9 +122,11 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
-                Abrir Configurações
-              </Button>
+              <Link href="/admin/configuracoes" className="w-full">
+                <Button className="w-full" variant="outline">
+                  Abrir Configurações
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -137,9 +142,31 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
-                Gerenciar Metas
-              </Button>
+              <Link href="/admin/metas" className="w-full">
+                <Button className="w-full" variant="outline">
+                  Gerenciar Metas
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Comparação entre Vendedores */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-primary" />
+                <CardTitle>Comparação entre Vendedores</CardTitle>
+              </div>
+              <CardDescription>
+                Compare performance de todos os vendedores
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/comparacao" className="w-full">
+                <Button className="w-full" variant="outline">
+                  Ver Comparação
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
@@ -168,6 +195,9 @@ export default function AdminPage() {
     </div>
   )
 }
+
+
+
 
 
 

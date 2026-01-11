@@ -41,6 +41,8 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const [relatoriosGraficos, setRelatoriosGraficos] = useState<any[]>([]) // Dados expandidos para gráficos
   const [vendasPeriodoAnterior, setVendasPeriodoAnterior] = useState<any[]>([]) // Para comparação
   const [relatoriosPeriodoAnterior, setRelatoriosPeriodoAnterior] = useState<any[]>([]) // Para comparação
+  const [vendasMensais, setVendasMensais] = useState<any[]>([]) // Dados mensais (para meta e projeção quando diário)
+  const [vendasSemanais, setVendasSemanais] = useState<any[]>([]) // Dados semanais (para meta e projeção quando semanal)
   const [loading, setLoading] = useState(true)
   const [vendaDialogOpen, setVendaDialogOpen] = useState(false)
   const [relatorioDialogOpen, setRelatorioDialogOpen] = useState(false)
@@ -141,21 +143,31 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       }
       
       // Buscar dados do período exato (KPIs), expandidos (gráficos) e período anterior (comparação)
-      const [vendasRes, relatoriosRes, vendasGraficosRes, relatoriosGraficosRes, vendasAnteriorRes, relatoriosAnteriorRes] = await Promise.all([
+      const promises = [
         fetch(`/api/vendas?${params}`),
         fetch(`/api/relatorios?${params}`),
         fetch(`/api/vendas?${paramsGraficos}`),
         fetch(`/api/relatorios?${paramsGraficos}`),
         fetch(`/api/vendas?${paramsPeriodoAnterior}`),
         fetch(`/api/relatorios?${paramsPeriodoAnterior}`)
-      ])
+      ]
+
+      // Buscar dados mensais se for diário
+      if (tipoVisao === 'diario' && dia) {
+        const dataSelecionada = new Date(dia + 'T00:00:00')
+        const mesData = dataSelecionada.getMonth() + 1
+        const anoData = dataSelecionada.getFullYear()
+        promises.push(fetch(`/api/vendas?vendedorId=${vendedor.id}&mes=${mesData}&ano=${anoData}`))
+      }
+
+      const results = await Promise.all(promises)
       
-      const vendasData = await vendasRes.json()
-      const relatoriosData = await relatoriosRes.json()
-      const vendasGraficosData = await vendasGraficosRes.json()
-      const relatoriosGraficosData = await relatoriosGraficosRes.json()
-      const vendasAnteriorData = await vendasAnteriorRes.json()
-      const relatoriosAnteriorData = await relatoriosAnteriorRes.json()
+      const vendasData = await results[0].json()
+      const relatoriosData = await results[1].json()
+      const vendasGraficosData = await results[2].json()
+      const relatoriosGraficosData = await results[3].json()
+      const vendasAnteriorData = await results[4].json()
+      const relatoriosAnteriorData = await results[5].json()
       
       setVendas(vendasData)
       setRelatorios(relatoriosData)
@@ -163,6 +175,27 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       setRelatoriosGraficos(relatoriosGraficosData)
       setVendasPeriodoAnterior(vendasAnteriorData)
       setRelatoriosPeriodoAnterior(relatoriosAnteriorData)
+
+      // Armazenar dados mensais/semanais para meta e projeção
+      if (tipoVisao === 'diario' && results[6]) {
+        // Diário: usar dados mensais do mês do dia selecionado
+        const vendasMensaisData = await results[6].json()
+        setVendasMensais(vendasMensaisData)
+        setVendasSemanais([])
+      } else if (tipoVisao === 'semanal') {
+        // Semanal: usar dados semanais (já estão em vendasData)
+        setVendasSemanais(vendasData)
+        setVendasMensais([])
+      } else {
+        // Mensal, anual, total, personalizado: usar dados mensais (já estão em vendasData)
+        if (tipoVisao === 'mensal' || tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado') {
+          setVendasMensais(vendasData)
+          setVendasSemanais([])
+        } else {
+          setVendasMensais([])
+          setVendasSemanais([])
+        }
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
     } finally {
@@ -174,8 +207,11 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     carregarDados()
   }, [mes, ano, dia, semana, tipoVisao, dataInicio, dataFim, vendedor.id])
 
+  // Função auxiliar para verificar se venda deve contar (apenas CONFIRMADAS)
+  const vendaDeveContar = (v: any) => v.status === 'CONFIRMADA'
+  
   // Calcular KPIs do período atual
-  const vendasConfirmadas = vendas.filter(v => v.status === 'CONFIRMADA')
+  const vendasConfirmadas = vendas.filter(vendaDeveContar)
   const faturamento = vendasConfirmadas.reduce((sum, v) => sum + v.valor, 0)
   const qtdVendas = vendasConfirmadas.length
   const ticketMedio = qtdVendas > 0 ? faturamento / qtdVendas : 0
@@ -187,7 +223,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const infoFaixa = getInfoFaixa(vendedor.cargo as Cargo, faturamento)
 
   // Calcular KPIs do período anterior (para comparação)
-  const vendasConfirmadasAnterior = vendasPeriodoAnterior.filter(v => v.status === 'CONFIRMADA')
+  const vendasConfirmadasAnterior = vendasPeriodoAnterior.filter(vendaDeveContar)
   const faturamentoAnterior = vendasConfirmadasAnterior.reduce((sum, v) => sum + v.valor, 0)
   const qtdVendasAnterior = vendasConfirmadasAnterior.length
   const ticketMedioAnterior = qtdVendasAnterior > 0 ? faturamentoAnterior / qtdVendasAnterior : 0
@@ -222,7 +258,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   // Adicionar comissão estimada nas vendas
   const vendasComComissao = vendas.map(v => ({
     ...v,
-    comissaoEstimada: v.status === 'CONFIRMADA' ? v.valor * infoFaixa.percentual : 0
+    comissaoEstimada: vendaDeveContar(v) ? v.valor * infoFaixa.percentual : 0
   }))
 
   // Determinar período real do gráfico
@@ -231,7 +267,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     : periodoGrafico === 'semana' ? 'semana' : periodoGrafico === 'mes' ? 'mes' : 'dia'
 
   // Filtrar vendas confirmadas dos dados de gráficos
-  const vendasConfirmadasGraficos = vendasGraficos.filter(v => v.status === 'CONFIRMADA')
+  const vendasConfirmadasGraficos = vendasGraficos.filter(vendaDeveContar)
 
   // Preparar dados para gráficos de vendas (usa dados expandidos)
   const chartDataFaturamento = prepararDadosChart(vendasConfirmadasGraficos, 'valor', tipoVisao, periodoReal, semana, mes, ano)
@@ -249,30 +285,146 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     ? ((respostasEnviadasPeriodo / leadsRecebidosPeriodo) * 100).toFixed(1)
     : '0'
   
-  // Dados para projeção (apenas para visão mensal)
+  // Calcular metas (baseado em vendas por semana)
+  const metasPorCargo: Record<string, { semanal: number, mensal: number }> = {
+    JUNIOR: { semanal: 5, mensal: 20 },
+    PLENO: { semanal: 7, mensal: 28 },
+    SENIOR: { semanal: 10, mensal: 40 },
+    GERENTE: { semanal: 12, mensal: 48 },
+  }
+  
+  // Determinar qual período usar para meta e projeção
+  // diário: dados mensais
+  // semanal: dados semanais
+  // restante: dados mensais
+  const usarDadosSemanais = tipoVisao === 'semanal'
+  const usarDadosMensais = tipoVisao === 'diario' || tipoVisao === 'mensal' || tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado'
+  
+  // Vendas para meta e projeção
+  const vendasParaMeta = usarDadosSemanais 
+    ? vendasSemanais.filter(vendaDeveContar)
+    : usarDadosMensais
+    ? vendasMensais.filter(vendaDeveContar)
+    : vendasConfirmadas
+  
+  const qtdVendasParaMeta = vendasParaMeta.length
+  const faturamentoParaMeta = vendasParaMeta.reduce((sum, v) => sum + v.valor, 0)
+  
+  const metaAtual = metasPorCargo[vendedor.cargo] || metasPorCargo.PLENO
+  const metaVendas = usarDadosSemanais ? metaAtual.semanal : metaAtual.mensal
+  const progressoMeta = metaVendas > 0 ? (qtdVendasParaMeta / metaVendas) * 100 : 0
+  const metaAtingida = qtdVendasParaMeta >= metaVendas
+  
+  // Dados para projeção
+  // diário: projeção mensal (mês do dia selecionado)
+  // semanal: projeção semanal (semana selecionada)
+  // restante: projeção mensal (mês selecionado)
   let dadosProjecao: { diasDecorridos: number; diasNoMes: number; proximaFaixa: { valor: number; percentual: string } | null } | null = null
   
-  if (tipoVisao === 'mensal' && mes && ano) {
-    const hoje = new Date()
-    const mesAtual = hoje.getMonth() + 1
-    const anoAtual = hoje.getFullYear()
+  const mesAtual = hoje.getMonth() + 1
+  const anoAtual = hoje.getFullYear()
+  
+  // Função auxiliar para calcular intervalo da semana
+  const calcularIntervaloSemana = (numeroSemana: number, mes: number, ano: number) => {
+    const primeiroDiaMes = new Date(ano, mes - 1, 1)
+    const diasNoMes = new Date(ano, mes, 0).getDate()
     
-    // Só mostrar projeção se for o mês atual
-    if (mes === mesAtual && ano === anoAtual) {
-      const diaAtual = hoje.getDate()
-      const diasNoMesAtual = new Date(ano, mes, 0).getDate()
+    let diaInicio = 1
+    let semanaAtual = 1
+    
+    for (let dia = 1; dia <= diasNoMes; dia++) {
+      const data = new Date(ano, mes - 1, dia)
+      if (semanaAtual === numeroSemana) {
+        diaInicio = dia
+        break
+      }
+      if (data.getDay() === 6) {
+        semanaAtual++
+      }
+    }
+    
+    let diaFim = diaInicio
+    for (let dia = diaInicio; dia <= diasNoMes; dia++) {
+      const data = new Date(ano, mes - 1, dia)
+      diaFim = dia
+      if (data.getDay() === 6) {
+        break
+      }
+    }
+    
+    return { diaInicio, diaFim }
+  }
+  
+  if (usarDadosSemanais) {
+    // Projeção semanal: calcular baseado na semana selecionada
+    if (mes && semana && ano) {
+      const { diaInicio, diaFim } = calcularIntervaloSemana(semana, mes, ano)
+      const diasNaSemana = diaFim - diaInicio + 1
       
-      // Encontrar próxima faixa
-      const FAIXAS = vendedor.cargo === 'JUNIOR' 
-        ? [{ valor: 40000, percentual: '3%' }, { valor: 50000, percentual: '4%' }, { valor: 60000, percentual: '5%' }]
-        : [{ valor: 40000, percentual: '7%' }, { valor: 50000, percentual: '8%' }, { valor: 60000, percentual: '9%' }]
+      // Determinar data de referência: se semana selecionada é futura, usar hoje; se passada, usar último dia da semana
+      const dataFimSemana = new Date(ano, mes - 1, diaFim, 23, 59, 59)
+      const dataReferencia = dataFimSemana < hoje ? dataFimSemana : hoje
       
-      const proximaFaixa = FAIXAS.find(f => f.valor > faturamento)
+      // Calcular dias decorridos até a data de referência
+      const diasDecorridosSemana = dataFimSemana < hoje
+        ? diasNaSemana // Semana passada: todos os dias decorridos
+        : Math.max(0, Math.min(dataReferencia.getDate() - diaInicio + 1, diasNaSemana))
       
       dadosProjecao = {
-        diasDecorridos: diaAtual,
-        diasNoMes: diasNoMesAtual,
-        proximaFaixa: proximaFaixa || null
+        diasDecorridos: diasDecorridosSemana,
+        diasNoMes: diasNaSemana,
+        proximaFaixa: null
+      }
+    }
+  } else if (usarDadosMensais) {
+    // Projeção mensal: calcular baseado no mês selecionado
+    let mesSelecionado: number | null = null
+    let anoSelecionado: number | null = null
+    
+    if (tipoVisao === 'diario' && dia) {
+      // Se for diário, usar o mês do dia selecionado
+      const dataSelecionada = new Date(dia + 'T00:00:00')
+      mesSelecionado = dataSelecionada.getMonth() + 1
+      anoSelecionado = dataSelecionada.getFullYear()
+    } else if (tipoVisao === 'mensal' && mes && ano) {
+      mesSelecionado = mes
+      anoSelecionado = ano
+    } else if (tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado') {
+      // Para anual, total, personalizado: usar mês atual
+      mesSelecionado = mesAtual
+      anoSelecionado = anoAtual
+    }
+    
+    if (mesSelecionado && anoSelecionado) {
+      const diasNoMesSelecionado = new Date(anoSelecionado, mesSelecionado, 0).getDate()
+      
+      // Determinar data de referência: se mês selecionado é futuro, usar hoje; se passado, usar último dia do mês
+      const dataFimMes = new Date(anoSelecionado, mesSelecionado, 0, 23, 59, 59)
+      const dataReferencia = dataFimMes < hoje ? dataFimMes : hoje
+      
+      // Calcular dias decorridos até a data de referência
+      const diasDecorridos = dataFimMes < hoje
+        ? diasNoMesSelecionado // Mês passado: todos os dias decorridos
+        : dataReferencia.getDate() // Mês atual ou futuro: dias até hoje
+      
+      // Encontrar próxima faixa (apenas para mês atual)
+      let proximaFaixa: { valor: number; percentual: string } | null = null
+      if (mesSelecionado === mesAtual && anoSelecionado === anoAtual) {
+        const FAIXAS = vendedor.cargo === 'JUNIOR' 
+          ? [{ valor: 40000, percentual: '3%' }, { valor: 50000, percentual: '4%' }, { valor: 60000, percentual: '5%' }]
+          : vendedor.cargo === 'PLENO'
+          ? [{ valor: 40000, percentual: '7%' }, { valor: 50000, percentual: '8%' }, { valor: 60000, percentual: '9%' }]
+          : vendedor.cargo === 'SENIOR'
+          ? [{ valor: 40000, percentual: '10%' }, { valor: 50000, percentual: '11%' }, { valor: 60000, percentual: '12%' }]
+          : [{ valor: 40000, percentual: '13%' }, { valor: 50000, percentual: '14%' }, { valor: 60000, percentual: '15%' }]
+        
+        proximaFaixa = FAIXAS.find(f => f.valor > faturamentoParaMeta) || null
+      }
+      
+      dadosProjecao = {
+        diasDecorridos: diasDecorridos,
+        diasNoMes: diasNoMesSelecionado,
+        proximaFaixa: proximaFaixa
       }
     }
   }
@@ -288,37 +440,37 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     ? 'no ano'
     : 'no total'
 
-  // Calcular metas (baseado em vendas por semana)
-  const metasPorCargo: Record<string, { semanal: number, mensal: number }> = {
-    JUNIOR: { semanal: 5, mensal: 20 },
-    PLENO: { semanal: 7, mensal: 28 },
-    SENIOR: { semanal: 10, mensal: 40 },
-    GERENTE: { semanal: 12, mensal: 48 },
-  }
-  
-  const metaAtual = metasPorCargo[vendedor.cargo] || metasPorCargo.PLENO
-  const metaVendas = tipoVisao === 'semanal' ? metaAtual.semanal : metaAtual.mensal
-  const progressoMeta = metaVendas > 0 ? (qtdVendas / metaVendas) * 100 : 0
-  const metaAtingida = qtdVendas >= metaVendas
-
   const handleSaveVenda = async (venda: any) => {
     try {
+      console.log('Salvando venda:', venda) // Debug
+      let response
       if (venda.id) {
-        await fetch(`/api/vendas/${venda.id}`, {
+        response = await fetch(`/api/vendas/${venda.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(venda)
         })
       } else {
-        await fetch('/api/vendas', {
+        response = await fetch('/api/vendas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(venda)
         })
       }
+      
+      if (!response.ok) {
+        const error = await response.json()
+        console.error('Erro na resposta:', error)
+        alert(`Erro ao salvar venda: ${error.error || 'Erro desconhecido'}`)
+        return
+      }
+      
+      const result = await response.json()
+      console.log('Venda salva com sucesso:', result) // Debug
       carregarDados()
     } catch (error) {
       console.error('Erro ao salvar venda:', error)
+      alert('Erro ao salvar venda. Verifique o console para mais detalhes.')
     }
   }
 
@@ -366,6 +518,8 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       Email: venda.email,
       Valor: `R$ ${venda.valor.toFixed(2)}`,
       Status: venda.status,
+      Cupom: venda.cupom || '',
+      Plano: venda.plano || '',
       Observacao: venda.observacao || ''
     }))
 
@@ -421,11 +575,36 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   return (
     <div className="space-y-6">
       {/* Título */}
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">{vendedor.nome}</h2>
-        <p className="text-muted-foreground">
-          Cargo: <span className="font-medium">{vendedor.cargo}</span>
-        </p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">{vendedor.nome}</h2>
+          <p className="text-muted-foreground">
+            Cargo: <span className="font-medium">{vendedor.cargo}</span>
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            onClick={() => {
+              setVendaEdit(null)
+              setVendaDialogOpen(true)
+            }}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Nova Venda
+          </Button>
+          <Button 
+            onClick={() => {
+              setRelatorioEdit(null)
+              setRelatorioDialogOpen(true)
+            }}
+            variant="outline"
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Relatório Diário
+          </Button>
+        </div>
       </div>
 
       {/* Seletor de Período */}
@@ -453,43 +632,23 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
           value={formatCurrency(faturamento)}
           subtitle={infoFaixa.descricao}
           icon={DollarSign}
-          trend={tipoVisao !== 'total' && tipoVisao !== 'personalizado' ? {
-            value: variacaoFaturamento,
-            isPositive: variacaoFaturamento >= 0,
-            label: labelComparacao
-          } : undefined}
         />
         <KPICard
           title="Vendas Confirmadas"
           value={qtdVendas.toString()}
           subtitle="No período"
           icon={ShoppingCart}
-          trend={tipoVisao !== 'total' && tipoVisao !== 'personalizado' ? {
-            value: variacaoVendas,
-            isPositive: variacaoVendas >= 0,
-            label: labelComparacao
-          } : undefined}
         />
         <KPICard
           title="Ticket Médio"
           value={formatCurrency(ticketMedio)}
           icon={TrendingUp}
-          trend={tipoVisao !== 'total' && tipoVisao !== 'personalizado' ? {
-            value: variacaoTicket,
-            isPositive: variacaoTicket >= 0,
-            label: labelComparacao
-          } : undefined}
         />
         <KPICard
           title="Comissão"
           value={formatCurrency(comissao)}
           subtitle={`Alíquota: ${infoFaixa.percentualFormatado}`}
           icon={Percent}
-          trend={tipoVisao !== 'total' && tipoVisao !== 'personalizado' ? {
-            value: variacaoComissao,
-            isPositive: variacaoComissao >= 0,
-            label: labelComparacao
-          } : undefined}
         />
         <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -511,15 +670,15 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       </div>
 
       {/* Meta de Vendas */}
-      {(tipoVisao === 'semanal' || tipoVisao === 'mensal') && (
+      {(usarDadosSemanais || usarDadosMensais) && (
         <Card className={`${metaAtingida ? 'bg-gradient-to-br from-green-500/10 to-emerald-600/5 border-green-500/30' : 'bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/30'}`}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">
-                🎯 Meta de Vendas {tipoVisao === 'semanal' ? 'Semanal' : 'Mensal'}
+                🎯 Meta de Vendas {usarDadosSemanais ? 'Semanal' : 'Mensal'}
               </CardTitle>
               <span className={`text-2xl font-bold ${metaAtingida ? 'text-green-600' : 'text-blue-600'}`}>
-                {qtdVendas}/{metaVendas}
+                {qtdVendasParaMeta}/{metaVendas}
               </span>
             </div>
           </CardHeader>
@@ -542,13 +701,13 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
                   <span className="text-green-600 font-medium">✅ Meta atingida!</span>
                   {progressoMeta > 100 && (
                     <span className="text-muted-foreground">
-                      (+{(qtdVendas - metaVendas)} vendas acima)
+                      (+{(qtdVendasParaMeta - metaVendas)} vendas acima)
                     </span>
                   )}
                 </>
               ) : (
                 <span className="text-muted-foreground">
-                  Faltam {metaVendas - qtdVendas} vendas para atingir a meta
+                  Faltam {metaVendas - qtdVendasParaMeta} vendas para atingir a meta
                 </span>
               )}
             </div>
@@ -556,10 +715,10 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         </Card>
       )}
 
-      {/* Projeção de Faturamento (apenas para mês atual) */}
+      {/* Projeção de Faturamento */}
       {dadosProjecao && (
         <ProjecaoCard
-          faturamentoAtual={faturamento}
+          faturamentoAtual={faturamentoParaMeta}
           diasDecorridos={dadosProjecao.diasDecorridos}
           diasNoMes={dadosProjecao.diasNoMes}
           proximaFaixa={dadosProjecao.proximaFaixa}
@@ -585,17 +744,6 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
             <p className="text-xs text-muted-foreground mt-1 capitalize">
               {textoPeriodo}
             </p>
-            {tipoVisao !== 'total' && tipoVisao !== 'personalizado' && (
-              <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
-                variacaoLeads === 0 
-                  ? 'text-muted-foreground' 
-                  : variacaoLeads >= 0 
-                    ? 'text-green-600 dark:text-green-500' 
-                    : 'text-red-600 dark:text-red-500'
-              }`}>
-                {variacaoLeads === 0 ? '—' : `${variacaoLeads >= 0 ? '+' : ''}${variacaoLeads.toFixed(1)}%`} {labelComparacao}
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -613,17 +761,6 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
             <p className="text-xs text-muted-foreground mt-1 capitalize">
               {textoPeriodo}
             </p>
-            {tipoVisao !== 'total' && tipoVisao !== 'personalizado' && (
-              <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
-                variacaoRespostas === 0 
-                  ? 'text-muted-foreground' 
-                  : variacaoRespostas >= 0 
-                    ? 'text-green-600 dark:text-green-500' 
-                    : 'text-red-600 dark:text-red-500'
-              }`}>
-                {variacaoRespostas === 0 ? '—' : `${variacaoRespostas >= 0 ? '+' : ''}${variacaoRespostas.toFixed(1)}%`} {labelComparacao}
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -647,27 +784,6 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
 
       {/* Ações */}
       <div className="flex flex-wrap gap-2">
-        <Button 
-          onClick={() => {
-            setVendaEdit(null)
-            setVendaDialogOpen(true)
-          }}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Nova Venda
-        </Button>
-        <Button 
-          onClick={() => {
-            setRelatorioEdit(null)
-            setRelatorioDialogOpen(true)
-          }}
-          variant="outline"
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Relatório Diário
-        </Button>
         <Button 
           onClick={handleExportarVendas}
           variant="secondary"
@@ -750,6 +866,13 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         />
       </div>
 
+      {/* Funil de Conversão */}
+      <FunilConversao
+        leadsRecebidos={leadsRecebidosPeriodo}
+        respostasEnviadas={respostasEnviadasPeriodo}
+        vendasFechadas={qtdVendas}
+      />
+
       {/* Tabela de Vendas */}
       <Card>
         <CardHeader>
@@ -767,13 +890,6 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
           />
         </CardContent>
       </Card>
-
-      {/* Funil de Conversão */}
-      <FunilConversao
-        leadsRecebidos={leadsRecebidosPeriodo}
-        respostasEnviadas={respostasEnviadasPeriodo}
-        vendasFechadas={qtdVendas}
-      />
 
       {/* Dialogs */}
       <VendaDialog
