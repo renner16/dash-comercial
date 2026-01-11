@@ -181,9 +181,11 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   let comissaoTotalEquipe = 0
   let salarioFixoTotalEquipe = 0
   
-  Object.entries(vendasPorVendedor).forEach(([vendedorId, vendasVendedor]: [string, any[]]) => {
+  // Iterar sobre as chaves do objeto ao invés de usar Object.entries para evitar problemas de tipagem
+  for (const vendedorId in vendasPorVendedor) {
+    const vendasVendedor = vendasPorVendedor[vendedorId]
     const vendedor = vendedores.find(v => v.id === vendedorId)
-    if (vendedor) {
+    if (vendedor && Array.isArray(vendasVendedor)) {
       const faturamentoVendedor = vendasVendedor.reduce((sum: number, v: any) => sum + v.valor, 0)
       const comissaoVendedor = calcularComissao(vendedor.cargo as Cargo, faturamentoVendedor)
       const salarioFixoVendedor = getSalarioFixo(vendedor.cargo as Cargo)
@@ -191,7 +193,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       comissaoTotalEquipe += comissaoVendedor
       salarioFixoTotalEquipe += salarioFixoVendedor
     }
-  })
+  }
   
   const salarioTotalEquipe = salarioFixoTotalEquipe + comissaoTotalEquipe
 
