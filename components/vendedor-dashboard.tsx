@@ -614,7 +614,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
             className="gap-2"
           >
             <Plus className="w-4 h-4" />
-            + Quantidade de Leads
+            Quantidade de Leads
           </Button>
         </div>
       </div>
@@ -885,11 +885,53 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         vendasFechadas={qtdVendas}
       />
 
+      {/* Tabela de Vendas */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Vendas do Período</CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setVendaEdit(null)
+                setVendaDialogOpen(true)
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <VendasTable
+            vendas={vendasComComissao}
+            onEdit={(venda) => {
+              setVendaEdit(venda)
+              setVendaDialogOpen(true)
+            }}
+            onDelete={handleDeleteVenda}
+            showComissao
+          />
+        </CardContent>
+      </Card>
+
       {/* Tabela de Leads */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center justify-between">
             <CardTitle>Leads do Período</CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setRelatorioEdit(null)
+                setRelatorioDialogOpen(true)
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -904,24 +946,6 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
               setRelatorioDialogOpen(true)
             }}
             onDelete={handleDeleteRelatorio}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Tabela de Vendas */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Vendas do Período</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <VendasTable
-            vendas={vendasComComissao}
-            onEdit={(venda) => {
-              setVendaEdit(venda)
-              setVendaDialogOpen(true)
-            }}
-            onDelete={handleDeleteVenda}
-            showComissao
           />
         </CardContent>
       </Card>

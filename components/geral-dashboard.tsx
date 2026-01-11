@@ -712,26 +712,6 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
         vendasFechadas={qtdVendasTotal}
       />
 
-      {/* Tabela de Leads */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Leads do Período</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LeadsTable
-            relatorios={relatorios.map(r => {
-              const vend = vendedores.find(v => v.id === r.vendedorId)
-              return {
-                ...r,
-                data: new Date(r.data),
-                vendedorNome: vend?.nome || 'Desconhecido'
-              }
-            })}
-            showVendedor={true}
-          />
-        </CardContent>
-      </Card>
-
       {/* Tabela de Vendas */}
       <Card>
         <CardHeader>
@@ -762,6 +742,26 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
               nome: `${v.nome} (${vendedores.find(vend => vend.id === v.vendedorId)?.nome || 'Desconhecido'})`
             }))}
             showComissao={false}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Tabela de Leads */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Leads do Período</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LeadsTable
+            relatorios={relatorios.map(r => {
+              const vend = vendedores.find(v => v.id === r.vendedorId)
+              return {
+                ...r,
+                data: new Date(r.data),
+                vendedorNome: vend?.nome || 'Desconhecido'
+              }
+            })}
+            showVendedor={true}
           />
         </CardContent>
       </Card>
