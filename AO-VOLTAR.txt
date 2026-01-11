@@ -1,0 +1,54 @@
+========================================
+  O QUE FAZER QUANDO VOLTAR
+========================================
+
+PROBLEMA:
+- Build da Vercel falhando
+- Erro: tipo 'personalizado' nao aceito
+- Correcoes estao no computador, mas nao no GitHub
+- Vercel usando commit antigo (056c2ca)
+
+CORRECOES FEITAS (LOCAL):
+- components/geral-dashboard.tsx - tipo 'personalizado' adicionado
+- components/vendedor-dashboard.tsx - tipo 'personalizado' adicionado
+- components/header.tsx - verificacoes SSR
+- components/theme-toggle.tsx - verificacoes SSR
+- app/page.tsx - verificacoes SSR
+- package.json - scripts de build
+
+========================================
+  SOLUCAO QUANDO VOLTAR
+========================================
+
+OPCAO 1 - Se o terminal funcionar:
+Execute no terminal do Cursor:
+  cd "C:\Dev\dash comercial"
+  git add components/geral-dashboard.tsx components/vendedor-dashboard.tsx components/header.tsx components/theme-toggle.tsx app/page.tsx package.json
+  git commit -m "fix: corrige tipos TypeScript - adiciona personalizado"
+  git push origin main
+
+OPCAO 2 - Script automatico:
+Clique duas vezes em: SOLUCAO-FINAL.bat
+
+OPCAO 3 - VS Code:
+1. Abra VS Code
+2. Abra: C:\Dev\dash comercial
+3. Ctrl+Shift+G (Source Control)
+4. Clique no + ao lado de "Changes"
+5. Digite: fix: corrige tipos TypeScript
+6. Clique no check (Commit)
+7. Clique na nuvem (Push)
+
+========================================
+  VERIFICAR SE FUNCIONOU
+========================================
+
+1. Acesse: https://github.com/renner16/dash-comercial/commits/main
+2. Veja se o ultimo commit e DIFERENTE de 056c2ca
+3. A Vercel vai fazer deploy automaticamente
+
+========================================
+
+
+
+

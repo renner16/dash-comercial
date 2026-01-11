@@ -23,28 +23,36 @@ export function VendaDialog({ open, onOpenChange, onSave, venda, vendedorId }: V
     email: '',
     valor: '',
     status: 'CONFIRMADA',
+    cupom: '',
+    plano: '',
     observacao: '',
   })
 
   useEffect(() => {
-    if (venda) {
-      setFormData({
-        data: new Date(venda.data).toISOString().split('T')[0],
-        nome: venda.nome,
-        email: venda.email,
-        valor: venda.valor.toString(),
-        status: venda.status,
-        observacao: venda.observacao || '',
-      })
-    } else {
-      setFormData({
-        data: new Date().toISOString().split('T')[0],
-        nome: '',
-        email: '',
-        valor: '',
-        status: 'CONFIRMADA',
-        observacao: '',
-      })
+    if (open) {
+      if (venda) {
+        setFormData({
+          data: new Date(venda.data).toISOString().split('T')[0],
+          nome: venda.nome,
+          email: venda.email,
+          valor: venda.valor.toString(),
+          status: venda.status || 'CONFIRMADA',
+          cupom: venda.cupom || '',
+          plano: venda.plano || '',
+          observacao: venda.observacao || '',
+        })
+      } else {
+        setFormData({
+          data: new Date().toISOString().split('T')[0],
+          nome: '',
+          email: '',
+          valor: '',
+          status: 'CONFIRMADA',
+          cupom: '',
+          plano: '',
+          observacao: '',
+        })
+      }
     }
   }, [venda, open])
 
@@ -75,14 +83,16 @@ export function VendaDialog({ open, onOpenChange, onSave, venda, vendedorId }: V
     const vendaData: any = {
       ...formData,
       valor,
-      data: new Date(formData.data + 'T12:00:00'),
+      data: new Date(formData.data + 'T12:00:00').toISOString(), // Converter para ISO string
       vendedorId,
+      status: formData.status, // Garantir que o status está sendo enviado
     }
 
     if (venda) {
       vendaData.id = venda.id
     }
 
+    console.log('Enviando venda:', vendaData) // Debug
     await onSave(vendaData)
     onOpenChange(false)
   }
@@ -148,7 +158,31 @@ export function VendaDialog({ open, onOpenChange, onSave, venda, vendedorId }: V
               <SelectContent>
                 <SelectItem value="CONFIRMADA">CONFIRMADA</SelectItem>
                 <SelectItem value="PENDENTE">PENDENTE</SelectItem>
+                <SelectItem value="CANCELADA">CANCELADA</SelectItem>
                 <SelectItem value="ESTORNADA">ESTORNADA</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cupom">Cupom Usado (opcional)</Label>
+            <Input
+              id="cupom"
+              value={formData.cupom}
+              onChange={(e) => setFormData({ ...formData, cupom: e.target.value })}
+              placeholder="Ex: DESCONTO10"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="plano">Plano do Lead</Label>
+            <Select value={formData.plano} onValueChange={(value) => setFormData({ ...formData, plano: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o plano" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ANUAL">Anual</SelectItem>
+                <SelectItem value="VITALICIO">Vitalício</SelectItem>
               </SelectContent>
             </Select>
           </div>

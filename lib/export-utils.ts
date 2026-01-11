@@ -51,6 +51,8 @@ export function formatarVendasParaExport(vendas: any[]) {
     Email: venda.email,
     Valor: venda.valor,
     Status: venda.status,
+    Cupom: venda.cupom || '',
+    Plano: venda.plano || '',
     Observacao: venda.observacao || ''
   }))
 }
@@ -67,6 +69,9 @@ export function formatarRelatoriosParaExport(relatorios: any[]) {
     Observacao: relatorio.observacao || ''
   }))
 }
+
+
+
 
 
 

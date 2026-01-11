@@ -135,6 +135,8 @@ export async function POST(request: NextRequest) {
         email: body.email,
         valor: body.valor,
         status: body.status,
+        cupom: body.cupom || null,
+        plano: body.plano || null,
         observacao: body.observacao || null,
       },
     })

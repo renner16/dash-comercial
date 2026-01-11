@@ -1,0 +1,45 @@
+========================================
+  COMO ENVIAR PARA O GIT
+========================================
+
+OPCAO 1 - Script Automatico:
+1. Clique duas vezes em: GIT-PUSH.bat
+2. Pronto!
+
+OPCAO 2 - PowerShell Manual:
+1. Abra PowerShell
+2. Execute os comandos abaixo:
+
+cd "C:\Dev\dash comercial"
+git add components/geral-dashboard.tsx components/vendedor-dashboard.tsx components/header.tsx components/theme-toggle.tsx app/page.tsx package.json
+git commit -m "fix: corrige tipos TypeScript"
+git push origin main
+
+OPCAO 3 - Git Bash:
+1. Abra Git Bash
+2. Execute os mesmos comandos da Opcao 2
+
+OPCAO 4 - VS Code:
+1. Abra o projeto no VS Code
+2. Vá na aba "Source Control" (Ctrl+Shift+G)
+3. Veja os arquivos modificados
+4. Clique no "+" ao lado de cada arquivo para adicionar
+5. Digite a mensagem: "fix: corrige tipos TypeScript"
+6. Clique em "Commit"
+7. Clique em "Sync Changes" ou "Push"
+
+========================================
+  ARQUIVOS QUE PRECISAM SER ENVIADOS:
+========================================
+- components/geral-dashboard.tsx
+- components/vendedor-dashboard.tsx
+- components/header.tsx
+- components/theme-toggle.tsx
+- app/page.tsx
+- package.json
+
+========================================
+
+
+
+

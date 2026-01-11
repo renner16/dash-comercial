@@ -1,0 +1,49 @@
+========================================
+  PROBLEMA: Correcoes nao foram para o Git
+========================================
+
+A Vercel esta usando o commit antigo (056c2ca).
+As correcoes estao no seu computador, mas NAO no GitHub.
+
+========================================
+  SOLUCAO: Enviar para o GitHub AGORA
+========================================
+
+METODO 1 - VS CODE (MAIS FACIL):
+
+1. Abra o VS Code
+2. Abra: C:\Dev\dash comercial
+3. Pressione: Ctrl+Shift+G
+4. Voce vera arquivos modificados
+5. Clique no "+" ao lado de "Changes"
+6. Digite: fix: corrige tipos TypeScript
+7. Clique no icone de check (Commit)
+8. Clique no icone de nuvem (Push)
+
+METODO 2 - SCRIPT:
+
+1. Clique duas vezes em: ENVIAR.bat
+2. Pronto!
+
+METODO 3 - GIT BASH:
+
+1. Abra Git Bash
+2. Execute:
+   cd "/c/Dev/dash comercial"
+   git add components/geral-dashboard.tsx components/vendedor-dashboard.tsx components/header.tsx components/theme-toggle.tsx app/page.tsx package.json
+   git commit -m "fix: corrige tipos TypeScript"
+   git push origin main
+
+========================================
+  VERIFICAR SE FUNCIONOU
+========================================
+
+1. Acesse: https://github.com/renner16/dash-comercial
+2. Veja se o ultimo commit e diferente de 056c2ca
+3. Se sim, a Vercel vai fazer deploy automaticamente
+
+========================================
+
+
+
+

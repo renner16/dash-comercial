@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Trash2, ArrowUpDown, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+import { Pencil, Trash2, ArrowUpDown, ChevronLeft, ChevronRight, AlertTriangle, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,8 @@ interface Venda {
   email: string
   valor: number
   status: string
+  cupom?: string | null
+  plano?: string | null
   observacao: string | null
   comissaoEstimada?: number
 }
@@ -37,6 +40,7 @@ interface VendasTableProps {
 const STATUS_COLORS = {
   CONFIRMADA: 'bg-green-500/10 text-green-500 border-green-500/20',
   PENDENTE: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+  CANCELADA: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
   ESTORNADA: 'bg-red-500/10 text-red-500 border-red-500/20',
 }
 
@@ -45,18 +49,43 @@ type SortDirection = 'asc' | 'desc'
 
 export function VendasTable({ vendas, onEdit, onDelete, showComissao = false }: VendasTableProps) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [filtroStatus, setFiltroStatus] = useState<string>('todos')
+  const [filtroCupom, setFiltroCupom] = useState<string>('todos')
+  const [filtroPlano, setFiltroPlano] = useState<string>('todos')
   const [sortField, setSortField] = useState<SortField>('data')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [currentPage, setCurrentPage] = useState(1)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const itemsPerPage = 10
 
+  // Obter valores únicos para os filtros
+  const cuponsUnicos = Array.from(new Set(vendas.map(v => v.cupom).filter(Boolean))) as string[]
+  const planosUnicos = Array.from(new Set(vendas.map(v => v.plano).filter(Boolean))) as string[]
+
   // Filtrar vendas
-  const filteredVendas = vendas.filter(venda =>
-    venda.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    venda.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (venda.observacao?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  )
+  const filteredVendas = vendas.filter(venda => {
+    // Filtro de busca por texto
+    const matchSearch = searchTerm === '' ||
+      venda.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venda.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (venda.cupom?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (venda.observacao?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+
+    // Filtro de status
+    const matchStatus = filtroStatus === 'todos' || venda.status === filtroStatus
+
+    // Filtro de cupom
+    const matchCupom = filtroCupom === 'todos' || 
+      (filtroCupom === 'sem-cupom' && !venda.cupom) ||
+      (filtroCupom !== 'sem-cupom' && venda.cupom === filtroCupom)
+
+    // Filtro de plano
+    const matchPlano = filtroPlano === 'todos' || 
+      (filtroPlano === 'sem-plano' && !venda.plano) ||
+      (filtroPlano !== 'sem-plano' && venda.plano === filtroPlano)
+
+    return matchSearch && matchStatus && matchCupom && matchPlano
+  })
 
   // Ordenar vendas
   const sortedVendas = [...filteredVendas].sort((a, b) => {
@@ -95,23 +124,107 @@ export function VendasTable({ vendas, onEdit, onDelete, showComissao = false }: 
     setCurrentPage(1) // Reset para primeira página ao ordenar
   }
 
+  const limparFiltros = () => {
+    setSearchTerm('')
+    setFiltroStatus('todos')
+    setFiltroCupom('todos')
+    setFiltroPlano('todos')
+    setCurrentPage(1)
+  }
+
+  const temFiltrosAtivos = searchTerm !== '' || filtroStatus !== 'todos' || filtroCupom !== 'todos' || filtroPlano !== 'todos'
+
   return (
     <div className="space-y-4">
-      {/* Busca */}
-      <div className="flex items-center gap-2">
-        <Input
-          type="text"
-          placeholder="Buscar por nome, email ou observação..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value)
-            setCurrentPage(1) // Reset para primeira página ao buscar
-          }}
-          className="max-w-md"
-        />
-        <span className="text-sm text-muted-foreground">
-          {filteredVendas.length} de {vendas.length} vendas
-        </span>
+      {/* Filtros */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Filtros</span>
+          {temFiltrosAtivos && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={limparFiltros}
+              className="h-7 text-xs"
+            >
+              Limpar filtros
+            </Button>
+          )}
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Busca */}
+          <div className="lg:col-span-2">
+            <Input
+              type="text"
+              placeholder="Buscar por nome, email, cupom ou observação..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setCurrentPage(1)
+              }}
+            />
+          </div>
+
+          {/* Filtro de Status */}
+          <Select value={filtroStatus} onValueChange={(value) => {
+            setFiltroStatus(value)
+            setCurrentPage(1)
+          }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os Status</SelectItem>
+              <SelectItem value="CONFIRMADA">Confirmada</SelectItem>
+              <SelectItem value="PENDENTE">Pendente</SelectItem>
+              <SelectItem value="CANCELADA">Cancelada</SelectItem>
+              <SelectItem value="ESTORNADA">Estornada</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Filtro de Cupom */}
+          <Select value={filtroCupom} onValueChange={(value) => {
+            setFiltroCupom(value)
+            setCurrentPage(1)
+          }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Cupom" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os Cupons</SelectItem>
+              <SelectItem value="sem-cupom">Sem Cupom</SelectItem>
+              {cuponsUnicos.map(cupom => (
+                <SelectItem key={cupom} value={cupom}>{cupom}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Filtro de Plano */}
+          <Select value={filtroPlano} onValueChange={(value) => {
+            setFiltroPlano(value)
+            setCurrentPage(1)
+          }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Plano" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os Planos</SelectItem>
+              <SelectItem value="sem-plano">Sem Plano</SelectItem>
+              <SelectItem value="ANUAL">Anual</SelectItem>
+              <SelectItem value="VITALICIO">Vitalício</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Contador de resultados */}
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            Mostrando {filteredVendas.length} de {vendas.length} vendas
+            {temFiltrosAtivos && ' (filtrado)'}
+          </span>
+        </div>
       </div>
 
       <div className="rounded-md border">
@@ -158,6 +271,12 @@ export function VendasTable({ vendas, onEdit, onDelete, showComissao = false }: 
                     <ArrowUpDown className="w-3 h-3" />
                   </button>
                 </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Cupom
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Plano
+                </th>
                 {showComissao && (
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Comissão
@@ -176,7 +295,7 @@ export function VendasTable({ vendas, onEdit, onDelete, showComissao = false }: 
             <tbody className="divide-y divide-border">
               {paginatedVendas.length === 0 ? (
                 <tr>
-                  <td colSpan={showComissao ? 7 : 6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={showComissao ? 9 : 8} className="px-4 py-8 text-center text-muted-foreground">
                     Nenhuma venda encontrada
                   </td>
                 </tr>
@@ -199,6 +318,22 @@ export function VendasTable({ vendas, onEdit, onDelete, showComissao = false }: 
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLORS[venda.status as keyof typeof STATUS_COLORS]}`}>
                         {venda.status}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      {venda.cupom || '-'}
+                    </td>
+                    <td className="px-4 py-3">
+                      {venda.plano ? (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          venda.plano === 'VITALICIO' 
+                            ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' 
+                            : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                        }`}>
+                          {venda.plano === 'VITALICIO' ? 'Vitalício' : 'Anual'}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
                     </td>
                     {showComissao && (
                       <td className="px-4 py-3 text-sm font-medium text-green-500">
