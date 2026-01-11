@@ -48,11 +48,11 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
     try {
       let params = ''
       let paramsGraficos = '' // Params separados para gráficos
-      
+
       if (tipoVisao === 'diario' && dia) {
         // KPIs: apenas o dia selecionado
         params = `dia=${dia}`
-        
+
         // Gráficos: mês inteiro para contexto
         const dataSelecionada = new Date(dia + 'T00:00:00')
         const mesData = dataSelecionada.getMonth() + 1
@@ -61,17 +61,17 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       } else if (tipoVisao === 'semanal' && mes && semana) {
         // KPIs: apenas a semana selecionada
         params = `mes=${mes}&ano=${ano}&semana=${semana}`
-        
+
         // Gráficos: mês inteiro para comparar semanas
         paramsGraficos = `mes=${mes}&ano=${ano}`
       } else if (tipoVisao === 'mensal' && mes) {
         // KPIs: apenas o mês selecionado
         params = `mes=${mes}&ano=${ano}`
-        
+
         // Gráficos: range expandido para contexto
         const mesAtual = hoje.getMonth() + 1
         const anoAtual = hoje.getFullYear()
-        
+
         // Se é o mês atual, buscar últimos 6 meses para gráficos
         if (mes === mesAtual && ano === anoAtual) {
           const dataInicio = new Date(ano, mes - 7, 1) // 6 meses antes
@@ -98,7 +98,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       if (tipoVisao === 'total') {
         paramsGraficos = params
       }
-      
+
       // Buscar dados do período exato (KPIs) e dados expandidos (gráficos)
       const promises = [
         fetch(`/api/vendas?${params}`),
@@ -116,12 +116,12 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       }
 
       const results = await Promise.all(promises)
-      
+
       const vendasData = await results[0].json()
       const relatoriosData = await results[1].json()
       const vendasGraficosData = await results[2].json()
       const relatoriosGraficosData = await results[3].json()
-      
+
       setVendas(vendasData)
       setRelatorios(relatoriosData)
       setVendasGraficos(vendasGraficosData)
@@ -160,7 +160,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 
   // Função auxiliar para verificar se venda deve contar (apenas CONFIRMADAS)
   const vendaDeveContar = (v: any) => v.status === 'CONFIRMADA'
-  
+
   // Calcular KPIs gerais (apenas CONFIRMADAS)
   const vendasConfirmadas = vendas.filter(vendaDeveContar)
   const faturamentoTotal = vendasConfirmadas.reduce((sum, v) => sum + v.valor, 0)
@@ -180,40 +180,40 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   // Calcular comissão total e salário total da equipe
   let comissaoTotalEquipe = 0
   let salarioFixoTotalEquipe = 0
-  
+
   // Iterar sobre as chaves do objeto ao invés de usar Object.entries para evitar problemas de tipagem (Fix TS)
   Object.keys(vendasPorVendedor).forEach((vendedorId) => {
     const vendasVendedor = vendasPorVendedor[vendedorId]
-    const vendedor = vendedores.find(v => v.id === vendedorId)
+    const vendedor = vendedores.find(v => v.id === vendedorId) // ts-fix
     if (vendedor && Array.isArray(vendasVendedor)) {
       const faturamentoVendedor = vendasVendedor.reduce((sum: number, v: any) => sum + v.valor, 0)
       const comissaoVendedor = calcularComissao(vendedor.cargo as Cargo, faturamentoVendedor)
       const salarioFixoVendedor = getSalarioFixo(vendedor.cargo as Cargo)
-      
+
       comissaoTotalEquipe += comissaoVendedor
       salarioFixoTotalEquipe += salarioFixoVendedor
     }
   })
-  
+
   const salarioTotalEquipe = salarioFixoTotalEquipe + comissaoTotalEquipe
 
   // Calcular dados de leads (soma de todos os vendedores)
   const totalLeadsRecebidos = relatorios.reduce((sum, r) => sum + r.leadsRecebidos, 0)
   const totalRespostasEnviadas = relatorios.reduce((sum, r) => sum + r.respostasEnviadas, 0)
-  const taxaResposta = totalLeadsRecebidos > 0 
+  const taxaResposta = totalLeadsRecebidos > 0
     ? ((totalRespostasEnviadas / totalLeadsRecebidos) * 100).toFixed(1)
     : '0'
-  
+
   // Texto do período para os KPIs de leads
-  const textoPeriodo = tipoVisao === 'diario' 
-    ? 'no dia' 
+  const textoPeriodo = tipoVisao === 'diario'
+    ? 'no dia'
     : tipoVisao === 'semanal'
-    ? 'na semana'
-    : tipoVisao === 'mensal'
-    ? 'no mês'
-    : tipoVisao === 'anual'
-    ? 'no ano'
-    : 'no total'
+      ? 'na semana'
+      : tipoVisao === 'mensal'
+        ? 'no mês'
+        : tipoVisao === 'anual'
+          ? 'no ano'
+          : 'no total'
 
   // Calcular metas (soma das metas de todos os vendedores)
   const metasPorCargo: Record<string, { semanal: number, mensal: number }> = {
@@ -222,31 +222,31 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
     SENIOR: { semanal: 10, mensal: 40 },
     GERENTE: { semanal: 12, mensal: 48 },
   }
-  
+
   // Determinar qual período usar para meta e projeção
   // diário: dados mensais
   // semanal: dados semanais
   // restante: dados mensais
   const usarDadosSemanais = tipoVisao === 'semanal'
   const usarDadosMensais = tipoVisao === 'diario' || tipoVisao === 'mensal' || tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado'
-  
+
   // Vendas para meta e projeção
-  const vendasParaMeta = usarDadosSemanais 
+  const vendasParaMeta = usarDadosSemanais
     ? vendasSemanais.filter(vendaDeveContar)
     : usarDadosMensais
-    ? vendasMensais.filter(vendaDeveContar)
-    : vendasConfirmadas
-  
+      ? vendasMensais.filter(vendaDeveContar)
+      : vendasConfirmadas
+
   const qtdVendasParaMeta = vendasParaMeta.length
   const faturamentoParaMeta = vendasParaMeta.reduce((sum, v) => sum + v.valor, 0)
-  
+
   // Calcular meta total da equipe
   const metaTotalEquipe = vendedores.reduce((total, vendedor) => {
     const metaVendedor = metasPorCargo[vendedor.cargo] || metasPorCargo.PLENO
     const metaAtual = usarDadosSemanais ? metaVendedor.semanal : metaVendedor.mensal
     return total + metaAtual
   }, 0)
-  
+
   const progressoMeta = metaTotalEquipe > 0 ? (qtdVendasParaMeta / metaTotalEquipe) * 100 : 0
   const metaAtingida = qtdVendasParaMeta >= metaTotalEquipe
 
@@ -255,18 +255,18 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   // semanal: projeção semanal (semana selecionada)
   // restante: projeção mensal (mês selecionado)
   let dadosProjecao: { diasDecorridos: number; diasNoMes: number; proximaFaixa: { valor: number; percentual: string } | null } | null = null
-  
+
   const mesAtual = hoje.getMonth() + 1
   const anoAtual = hoje.getFullYear()
-  
+
   // Função auxiliar para calcular intervalo da semana
   const calcularIntervaloSemana = (numeroSemana: number, mes: number, ano: number) => {
     const primeiroDiaMes = new Date(ano, mes - 1, 1)
     const diasNoMes = new Date(ano, mes, 0).getDate()
-    
+
     let diaInicio = 1
     let semanaAtual = 1
-    
+
     for (let dia = 1; dia <= diasNoMes; dia++) {
       const data = new Date(ano, mes - 1, dia)
       if (semanaAtual === numeroSemana) {
@@ -277,7 +277,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
         semanaAtual++
       }
     }
-    
+
     let diaFim = diaInicio
     for (let dia = diaInicio; dia <= diasNoMes; dia++) {
       const data = new Date(ano, mes - 1, dia)
@@ -286,25 +286,25 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
         break
       }
     }
-    
+
     return { diaInicio, diaFim }
   }
-  
+
   if (usarDadosSemanais) {
     // Projeção semanal: calcular baseado na semana selecionada
     if (mes && semana && ano) {
       const { diaInicio, diaFim } = calcularIntervaloSemana(semana, mes, ano)
       const diasNaSemana = diaFim - diaInicio + 1
-      
+
       // Determinar data de referência: se semana selecionada é futura, usar hoje; se passada, usar último dia da semana
       const dataFimSemana = new Date(ano, mes - 1, diaFim, 23, 59, 59)
       const dataReferencia = dataFimSemana < hoje ? dataFimSemana : hoje
-      
+
       // Calcular dias decorridos até a data de referência
       const diasDecorridosSemana = dataFimSemana < hoje
         ? diasNaSemana // Semana passada: todos os dias decorridos
         : Math.max(0, Math.min(dataReferencia.getDate() - diaInicio + 1, diasNaSemana))
-      
+
       dadosProjecao = {
         diasDecorridos: diasDecorridosSemana,
         diasNoMes: diasNaSemana,
@@ -315,7 +315,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
     // Projeção mensal: calcular baseado no mês selecionado
     let mesSelecionado: number | null = null
     let anoSelecionado: number | null = null
-    
+
     if (tipoVisao === 'diario' && dia) {
       // Se for diário, usar o mês do dia selecionado
       const dataSelecionada = new Date(dia + 'T00:00:00')
@@ -329,19 +329,19 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       mesSelecionado = mesAtual
       anoSelecionado = anoAtual
     }
-    
+
     if (mesSelecionado && anoSelecionado) {
       const diasNoMesSelecionado = new Date(anoSelecionado, mesSelecionado, 0).getDate()
-      
+
       // Determinar data de referência: se mês selecionado é futuro, usar hoje; se passado, usar último dia do mês
       const dataFimMes = new Date(anoSelecionado, mesSelecionado, 0, 23, 59, 59)
       const dataReferencia = dataFimMes < hoje ? dataFimMes : hoje
-      
+
       // Calcular dias decorridos até a data de referência
       const diasDecorridos = dataFimMes < hoje
         ? diasNoMesSelecionado // Mês passado: todos os dias decorridos
         : dataReferencia.getDate() // Mês atual ou futuro: dias até hoje
-      
+
       dadosProjecao = {
         diasDecorridos: diasDecorridos,
         diasNoMes: diasNoMesSelecionado,
@@ -351,12 +351,12 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   }
 
   // Filtrar vendas para a tabela
-  const vendasFiltradas = filtroVendedor === 'todos' 
-    ? vendas 
+  const vendasFiltradas = filtroVendedor === 'todos'
+    ? vendas
     : vendas.filter(v => v.vendedorId === filtroVendedor)
 
   // Determinar período real do gráfico
-  const periodoReal = periodoGrafico === 'auto' 
+  const periodoReal = periodoGrafico === 'auto'
     ? (tipoVisao === 'semanal' ? 'semana' : tipoVisao === 'mensal' ? 'mes' : tipoVisao === 'diario' ? 'dia' : tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado' ? 'mes' : 'dia')
     : periodoGrafico === 'semana' ? 'semana' : periodoGrafico === 'mes' ? 'mes' : 'dia'
 
@@ -373,7 +373,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 
   const handleExportarTodasVendas = () => {
     const vendasParaExportar = filtroVendedor === 'todos' ? vendas : vendasFiltradas
-    
+
     if (!vendasParaExportar || vendasParaExportar.length === 0) {
       alert('Não há vendas para exportar!')
       return
@@ -394,11 +394,11 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       }
     })
 
-    const periodo = tipoVisao === 'diario' 
-      ? dia?.split('-').reverse().join('-') 
+    const periodo = tipoVisao === 'diario'
+      ? dia?.split('-').reverse().join('-')
       : tipoVisao === 'mensal'
-      ? `${mes}-${ano}`
-      : `${ano}`
+        ? `${mes}-${ano}`
+        : `${ano}`
 
     const filtro = filtroVendedor === 'todos' ? 'todas' : vendedores.find(v => v.id === filtroVendedor)?.nome.toLowerCase()
 
@@ -422,18 +422,18 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
         'Leads Recebidos': relatorio.leadsRecebidos,
         'Respostas Enviadas': relatorio.respostasEnviadas,
         'Vendas Realizadas': relatorio.vendasRealizadas,
-        'Taxa de Resposta (%)': relatorio.leadsRecebidos > 0 
+        'Taxa de Resposta (%)': relatorio.leadsRecebidos > 0
           ? ((relatorio.respostasEnviadas / relatorio.leadsRecebidos) * 100).toFixed(2)
           : '0.00',
         Observacao: relatorio.observacao || ''
       }
     })
 
-    const periodo = tipoVisao === 'diario' 
-      ? dia?.split('-').reverse().join('-') 
+    const periodo = tipoVisao === 'diario'
+      ? dia?.split('-').reverse().join('-')
       : tipoVisao === 'mensal'
-      ? `${mes}-${ano}`
-      : `${ano}`
+        ? `${mes}-${ano}`
+        : `${ano}`
 
     exportarParaCSV(
       relatoriosFormatados,
@@ -460,15 +460,15 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       </div>
 
       {/* Seletor de Período */}
-      <PeriodSelector 
-        mes={mes} 
+      <PeriodSelector
+        mes={mes}
         ano={ano}
         dia={dia}
         semana={semana}
         tipoVisao={tipoVisao}
         dataInicio={dataInicio}
         dataFim={dataFim}
-        onMesChange={setMes} 
+        onMesChange={setMes}
         onAnoChange={setAno}
         onDiaChange={setDia}
         onSemanaChange={setSemana}
@@ -524,7 +524,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
                 <span className="font-medium">{Math.min(100, progressoMeta).toFixed(0)}%</span>
               </div>
               <div className="h-3 bg-muted rounded-full overflow-hidden">
-                <div 
+                <div
                   className={`h-full transition-all duration-500 ${metaAtingida ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}
                   style={{ width: `${Math.min(100, progressoMeta)}%` }}
                 />
@@ -542,7 +542,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
                 </>
               ) : (
                 <span className="text-muted-foreground">
-                  {metaTotalEquipe > 0 
+                  {metaTotalEquipe > 0
                     ? `Faltam ${metaTotalEquipe - qtdVendasParaMeta} vendas para atingir a meta da equipe`
                     : 'Meta não configurada para este período'
                   }
@@ -571,10 +571,10 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
               Leads Recebidos
             </CardTitle>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
           </CardHeader>
           <CardContent>
@@ -591,7 +591,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
               Respostas Enviadas
             </CardTitle>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </CardHeader>
           <CardContent>
@@ -608,7 +608,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
               Taxa de Resposta
             </CardTitle>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
           </CardHeader>
           <CardContent>
@@ -622,7 +622,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 
       {/* Ações */}
       <div className="flex flex-wrap gap-2">
-        <Button 
+        <Button
           onClick={handleExportarTodasVendas}
           variant="secondary"
           className="gap-2"
@@ -630,7 +630,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
           <Download className="w-4 h-4" />
           Exportar Vendas
         </Button>
-        <Button 
+        <Button
           onClick={handleExportarTodosRelatorios}
           variant="secondary"
           className="gap-2"
@@ -663,18 +663,18 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       <div className={`grid gap-4 ${tipoVisao === 'total' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <SimpleLineChart
           title={
-            periodoReal === 'mes' ? "Faturamento por Mês" : 
-            periodoReal === 'semana' ? "Faturamento por Semana" : 
-            "Faturamento por Dia"
+            periodoReal === 'mes' ? "Faturamento por Mês" :
+              periodoReal === 'semana' ? "Faturamento por Semana" :
+                "Faturamento por Dia"
           }
           data={chartDataFaturamento}
           color="#8b5cf6"
         />
         <SimpleBarChart
           title={
-            periodoReal === 'mes' ? "Quantidade de Vendas por Mês" : 
-            periodoReal === 'semana' ? "Quantidade de Vendas por Semana" : 
-            "Quantidade de Vendas por Dia"
+            periodoReal === 'mes' ? "Quantidade de Vendas por Mês" :
+              periodoReal === 'semana' ? "Quantidade de Vendas por Semana" :
+                "Quantidade de Vendas por Dia"
           }
           data={chartDataQuantidade}
           color="#10b981"
@@ -686,18 +686,18 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       <div className={`grid gap-4 ${tipoVisao === 'total' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <SimpleLineChart
           title={
-            periodoReal === 'mes' ? "Leads Recebidos por Mês" : 
-            periodoReal === 'semana' ? "Leads Recebidos por Semana" : 
-            "Leads Recebidos por Dia"
+            periodoReal === 'mes' ? "Leads Recebidos por Mês" :
+              periodoReal === 'semana' ? "Leads Recebidos por Semana" :
+                "Leads Recebidos por Dia"
           }
           data={chartDataLeads}
           color="#3b82f6"
         />
         <SimpleLineChart
           title={
-            periodoReal === 'mes' ? "Respostas Enviadas por Mês" : 
-            periodoReal === 'semana' ? "Respostas Enviadas por Semana" : 
-            "Respostas Enviadas por Dia"
+            periodoReal === 'mes' ? "Respostas Enviadas por Mês" :
+              periodoReal === 'semana' ? "Respostas Enviadas por Semana" :
+                "Respostas Enviadas por Dia"
           }
           data={chartDataRespostas}
           color="#f59e0b"
@@ -752,30 +752,30 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
 function getWeekOfMonth(date: Date): number {
   const primeiroDiaMes = new Date(date.getFullYear(), date.getMonth(), 1)
   const diaDaSemanaInicio = primeiroDiaMes.getDay() // 0=domingo, 1=segunda, ..., 6=sábado
-  
+
   const diaAtual = date.getDate()
-  
+
   // Calcular quantos dias desde o início do mês até o primeiro domingo
   // Se o mês começa num domingo (0), não precisa ajustar
   // Se começa numa segunda (1), precisa de 6 dias até o domingo, etc.
   const diasAteSegundaSemana = 7 - diaDaSemanaInicio
-  
+
   if (diaAtual <= diasAteSegundaSemana) {
     return 1 // Primeira semana (pode ser parcial)
   }
-  
+
   // Dias restantes após a primeira semana
   const diasAposSegundaSemana = diaAtual - diasAteSegundaSemana
-  
+
   // Cada 7 dias completos = 1 semana adicional
   const semanasCompletas = Math.floor(diasAposSegundaSemana / 7)
-  
+
   return 2 + semanasCompletas
 }
 
 function prepararDadosChartVendas(
-  vendas: any[], 
-  tipo: 'valor' | 'count', 
+  vendas: any[],
+  tipo: 'valor' | 'count',
   tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total' | 'personalizado',
   periodoGrafico: 'dia' | 'semana' | 'mes' = 'dia',
   semanaSelecionada: number | null = null,
@@ -787,19 +787,19 @@ function prepararDadosChartVendas(
   if (periodoGrafico === 'mes' || tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado') {
     const dadosPorMesAno: Record<string, number> = {}
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-    
+
     // Identificar todos os anos presentes nos dados
     const anos = new Set<number>()
     vendas.forEach(v => {
       const ano = new Date(v.data).getFullYear()
       anos.add(ano)
     })
-    
+
     // Se não houver dados, usar o ano atual
     if (anos.size === 0) {
       anos.add(new Date().getFullYear())
     }
-    
+
     // Inicializar TODOS os meses para todos os anos com 0
     Array.from(anos).forEach(ano => {
       for (let mes = 0; mes < 12; mes++) {
@@ -807,7 +807,7 @@ function prepararDadosChartVendas(
         dadosPorMesAno[chave] = 0
       }
     })
-    
+
     // Preencher com os dados reais
     vendas.forEach(v => {
       const data = new Date(v.data)
@@ -823,8 +823,8 @@ function prepararDadosChartVendas(
         const ano = parseInt(anoStr)
         const mes = parseInt(mesStr)
         // Destacar o mês selecionado
-        const isSelected = mesSelecionado && anoSelecionado && 
-                          mes === (mesSelecionado - 1) && ano === anoSelecionado
+        const isSelected = mesSelecionado && anoSelecionado &&
+          mes === (mesSelecionado - 1) && ano === anoSelecionado
         return {
           name: `${mesesNome[mes]} ${ano}`,
           value: valor,
@@ -834,7 +834,7 @@ function prepararDadosChartVendas(
       })
       .sort((a, b) => a.sortKey - b.sortKey)
   }
-  
+
   // Se período do gráfico for SEMANA, agrupa por SEMANA
   if (periodoGrafico === 'semana') {
     const dadosPorSemana: Record<number, number> = {
@@ -844,7 +844,7 @@ function prepararDadosChartVendas(
       4: 0,
       5: 0
     }
-    
+
     vendas.forEach(v => {
       const data = new Date(v.data)
       const semana = getWeekOfMonth(data)
@@ -856,24 +856,24 @@ function prepararDadosChartVendas(
       const primeiroDiaMes = new Date(ano, mes - 1, 1)
       const diasNoMes = new Date(ano, mes, 0).getDate()
       const mesesAbrev = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
-      
+
       let diaInicio = 1
       let semanaAtual = 1
-      
+
       // Encontrar o dia de início da semana
       for (let dia = 1; dia <= diasNoMes; dia++) {
         const data = new Date(ano, mes - 1, dia)
-        
+
         if (semanaAtual === numeroSemana) {
           diaInicio = dia
           break
         }
-        
+
         if (data.getDay() === 6) { // Sábado = fim da semana
           semanaAtual++
         }
       }
-      
+
       // Encontrar o dia final da semana
       let diaFim = diaInicio
       for (let dia = diaInicio; dia <= diasNoMes; dia++) {
@@ -883,17 +883,17 @@ function prepararDadosChartVendas(
           break
         }
       }
-      
+
       const diaInicioStr = String(diaInicio).padStart(2, '0')
       const diaFimStr = String(diaFim).padStart(2, '0')
       const mesAbrev = mesesAbrev[mes - 1]
-      
+
       return `${diaInicioStr}a${diaFimStr} ${mesAbrev}`
     }
 
     return Object.entries(dadosPorSemana)
       .map(([semana, valor]) => ({
-        name: mesSelecionado && anoSelecionado 
+        name: mesSelecionado && anoSelecionado
           ? getWeekRange(parseInt(semana), mesSelecionado, anoSelecionado)
           : `Semana ${semana}`,
         value: valor,
@@ -905,10 +905,10 @@ function prepararDadosChartVendas(
         return semanaA - semanaB
       })
   }
-  
+
   // Para DIA, agrupa por DIA - mostrar TODOS os dias do mês
   const dadosPorDia: Record<number, number> = {}
-  
+
   // Determinar o mês/ano para calcular quantos dias tem
   let diasNoMes = 31
   if (vendas.length > 0) {
@@ -917,12 +917,12 @@ function prepararDadosChartVendas(
     const ano = primeiraData.getFullYear()
     diasNoMes = new Date(ano, mes + 1, 0).getDate()
   }
-  
+
   // Inicializar TODOS os dias do mês com 0
   for (let dia = 1; dia <= diasNoMes; dia++) {
     dadosPorDia[dia] = 0
   }
-  
+
   // Preencher com os dados reais
   vendas.forEach(v => {
     const dia = new Date(v.data).getDate()
@@ -938,8 +938,8 @@ function prepararDadosChartVendas(
 }
 
 function prepararDadosChartRelatorios(
-  relatorios: any[], 
-  campo: string, 
+  relatorios: any[],
+  campo: string,
   tipoVisao: 'diario' | 'semanal' | 'mensal' | 'anual' | 'total' | 'personalizado',
   periodoGrafico: 'dia' | 'semana' | 'mes' = 'dia',
   semanaSelecionada: number | null = null,
@@ -950,19 +950,19 @@ function prepararDadosChartRelatorios(
   if (periodoGrafico === 'mes' || tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado') {
     const dadosPorMesAno: Record<string, number> = {}
     const mesesNome = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-    
+
     // Identificar todos os anos presentes nos dados
     const anos = new Set<number>()
     relatorios.forEach(r => {
       const ano = new Date(r.data).getFullYear()
       anos.add(ano)
     })
-    
+
     // Se não houver dados, usar o ano atual
     if (anos.size === 0) {
       anos.add(new Date().getFullYear())
     }
-    
+
     // Inicializar TODOS os meses para todos os anos com 0
     Array.from(anos).forEach(ano => {
       for (let mes = 0; mes < 12; mes++) {
@@ -970,7 +970,7 @@ function prepararDadosChartRelatorios(
         dadosPorMesAno[chave] = 0
       }
     })
-    
+
     // Preencher com os dados reais
     relatorios.forEach(r => {
       const data = new Date(r.data)
@@ -986,8 +986,8 @@ function prepararDadosChartRelatorios(
         const ano = parseInt(anoStr)
         const mes = parseInt(mesStr)
         // Destacar o mês selecionado
-        const isSelected = mesSelecionado && anoSelecionado && 
-                          mes === (mesSelecionado - 1) && ano === anoSelecionado
+        const isSelected = mesSelecionado && anoSelecionado &&
+          mes === (mesSelecionado - 1) && ano === anoSelecionado
         return {
           name: `${mesesNome[mes]} ${ano}`,
           value: valor,
@@ -997,7 +997,7 @@ function prepararDadosChartRelatorios(
       })
       .sort((a, b) => a.sortKey - b.sortKey)
   }
-  
+
   // Se período do gráfico for SEMANA, agrupa por SEMANA
   if (periodoGrafico === 'semana') {
     const dadosPorSemana: Record<number, number> = {
@@ -1007,7 +1007,7 @@ function prepararDadosChartRelatorios(
       4: 0,
       5: 0
     }
-    
+
     relatorios.forEach(r => {
       const data = new Date(r.data)
       const semana = getWeekOfMonth(data)
@@ -1019,24 +1019,24 @@ function prepararDadosChartRelatorios(
       const primeiroDiaMes = new Date(ano, mes - 1, 1)
       const diasNoMes = new Date(ano, mes, 0).getDate()
       const mesesAbrev = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
-      
+
       let diaInicio = 1
       let semanaAtual = 1
-      
+
       // Encontrar o dia de início da semana
       for (let dia = 1; dia <= diasNoMes; dia++) {
         const data = new Date(ano, mes - 1, dia)
-        
+
         if (semanaAtual === numeroSemana) {
           diaInicio = dia
           break
         }
-        
+
         if (data.getDay() === 6) { // Sábado = fim da semana
           semanaAtual++
         }
       }
-      
+
       // Encontrar o dia final da semana
       let diaFim = diaInicio
       for (let dia = diaInicio; dia <= diasNoMes; dia++) {
@@ -1046,17 +1046,17 @@ function prepararDadosChartRelatorios(
           break
         }
       }
-      
+
       const diaInicioStr = String(diaInicio).padStart(2, '0')
       const diaFimStr = String(diaFim).padStart(2, '0')
       const mesAbrev = mesesAbrev[mes - 1]
-      
+
       return `${diaInicioStr}a${diaFimStr} ${mesAbrev}`
     }
 
     return Object.entries(dadosPorSemana)
       .map(([semana, valor]) => ({
-        name: mesSelecionado && anoSelecionado 
+        name: mesSelecionado && anoSelecionado
           ? getWeekRange(parseInt(semana), mesSelecionado, anoSelecionado)
           : `Semana ${semana}`,
         value: valor,
@@ -1068,10 +1068,10 @@ function prepararDadosChartRelatorios(
         return semanaA - semanaB
       })
   }
-  
+
   // Para DIA, agrupa por DIA - mostrar TODOS os dias do mês
   const dadosPorDia: Record<number, number> = {}
-  
+
   // Determinar o mês/ano para calcular quantos dias tem
   let diasNoMes = 31
   if (relatorios.length > 0) {
@@ -1080,12 +1080,12 @@ function prepararDadosChartRelatorios(
     const ano = primeiraData.getFullYear()
     diasNoMes = new Date(ano, mes + 1, 0).getDate()
   }
-  
+
   // Inicializar TODOS os dias do mês com 0
   for (let dia = 1; dia <= diasNoMes; dia++) {
     dadosPorDia[dia] = 0
   }
-  
+
   // Preencher com os dados reais
   relatorios.forEach(r => {
     const dia = new Date(r.data).getDate()
