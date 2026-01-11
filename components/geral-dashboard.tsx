@@ -181,7 +181,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   let comissaoTotalEquipe = 0
   let salarioFixoTotalEquipe = 0
   
-  // Iterar sobre as chaves do objeto ao invés de usar Object.entries para evitar problemas de tipagem
+  // Iterar sobre as chaves do objeto ao invés de usar Object.entries para evitar problemas de tipagem (Fix TS)
   Object.keys(vendasPorVendedor).forEach((vendedorId) => {
     const vendasVendedor = vendasPorVendedor[vendedorId]
     const vendedor = vendedores.find(v => v.id === vendedorId)
