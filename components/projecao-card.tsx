@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/utils"
 interface ProjecaoCardProps {
   faturamentoAtual: number
   comissaoAtual?: number
+  salarioFixo?: number
   diasDecorridos: number
   diasNoMes: number
   proximaFaixa: {
@@ -19,6 +20,7 @@ interface ProjecaoCardProps {
 export function ProjecaoCard({
   faturamentoAtual,
   comissaoAtual,
+  salarioFixo,
   diasDecorridos,
   diasNoMes,
   proximaFaixa
@@ -31,6 +33,11 @@ export function ProjecaoCard({
   // Calcular projeção de comissão (se houver)
   const mediaDiariaComissao = (comissaoAtual && diasDecorridos > 0) ? comissaoAtual / diasDecorridos : 0
   const projecaoComissao = comissaoAtual !== undefined ? comissaoAtual + (mediaDiariaComissao * diasRestantes) : null
+  
+  // Calcular projeção de salário total (salário fixo + comissão)
+  const projecaoSalarioTotal = (salarioFixo !== undefined && projecaoComissao !== null) 
+    ? salarioFixo + projecaoComissao 
+    : null
 
   // Progresso do mês
   const progressoMes = (diasDecorridos / diasNoMes) * 100
@@ -42,7 +49,7 @@ export function ProjecaoCard({
     <Card className="bg-gradient-to-br from-amber-500/10 to-orange-600/5 border-amber-500/20">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
-          Projeções do Mês
+          Projeções
         </CardTitle>
         <TrendingUp className="w-4 h-4 text-amber-500" />
       </CardHeader>
@@ -72,6 +79,11 @@ export function ProjecaoCard({
             <p className="text-xs text-muted-foreground mt-1">
               Ritmo: {formatCurrency(mediaDiariaComissao)}/dia
             </p>
+            {projecaoSalarioTotal !== null && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Salário Total: <span className="font-medium text-green-700 dark:text-green-400">{formatCurrency(projecaoSalarioTotal)}</span>
+              </p>
+            )}
           </div>
         )}
 
@@ -80,7 +92,7 @@ export function ProjecaoCard({
           <div className="flex items-center justify-between text-xs">
             <span className="flex items-center gap-1 text-muted-foreground">
               <Clock className="w-3 h-3" />
-              Progresso do mês
+              Progresso
             </span>
             <span className="font-medium">{progressoMes.toFixed(0)}%</span>
           </div>

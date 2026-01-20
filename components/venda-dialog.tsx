@@ -14,9 +14,11 @@ interface VendaDialogProps {
   onSave: (venda: any) => void
   venda?: any
   vendedorId: string
+  vendedores?: Array<{ id: string; nome: string }>
 }
 
-export function VendaDialog({ open, onOpenChange, onSave, venda, vendedorId }: VendaDialogProps) {
+export function VendaDialog({ open, onOpenChange, onSave, venda, vendedorId, vendedores }: VendaDialogProps) {
+  const [vendedorSelecionado, setVendedorSelecionado] = useState(vendedorId)
   const [formData, setFormData] = useState({
     data: '',
     nome: '',
@@ -27,6 +29,15 @@ export function VendaDialog({ open, onOpenChange, onSave, venda, vendedorId }: V
     plano: '',
     observacao: '',
   })
+
+  // Atualizar vendedor selecionado quando vendedorId mudar
+  useEffect(() => {
+    if (vendedorId) {
+      setVendedorSelecionado(vendedorId)
+    } else if (vendedores && vendedores.length > 0) {
+      setVendedorSelecionado(vendedores[0].id)
+    }
+  }, [vendedorId, vendedores])
 
   useEffect(() => {
     if (open) {
@@ -41,6 +52,10 @@ export function VendaDialog({ open, onOpenChange, onSave, venda, vendedorId }: V
           plano: venda.plano || '',
           observacao: venda.observacao || '',
         })
+        // Atualizar vendedor selecionado se a venda tiver vendedorId
+        if (venda.vendedorId) {
+          setVendedorSelecionado(venda.vendedorId)
+        }
       } else {
         setFormData({
           data: new Date().toISOString().split('T')[0],
@@ -84,7 +99,7 @@ export function VendaDialog({ open, onOpenChange, onSave, venda, vendedorId }: V
       ...formData,
       valor,
       data: new Date(formData.data + 'T12:00:00').toISOString(), // Converter para ISO string
-      vendedorId,
+      vendedorId: vendedorSelecionado || vendedorId,
       status: formData.status, // Garantir que o status está sendo enviado
     }
 
@@ -104,6 +119,24 @@ export function VendaDialog({ open, onOpenChange, onSave, venda, vendedorId }: V
           <DialogTitle>{venda ? 'Editar Venda' : 'Nova Venda'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {vendedores && vendedores.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="vendedor">Vendedor</Label>
+              <Select value={vendedorSelecionado} onValueChange={setVendedorSelecionado}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o vendedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendedores.map(v => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="data">Data</Label>
             <Input

@@ -61,7 +61,7 @@ export function formatarRelatoriosParaExport(relatorios: any[]) {
   return relatorios.map(relatorio => ({
     Data: relatorio.data,
     'Leads Recebidos': relatorio.leadsRecebidos,
-    'Respostas Enviadas': relatorio.respostasEnviadas,
+    'Respostas Recebidas': relatorio.respostasEnviadas,
     'Vendas Realizadas': relatorio.vendasRealizadas,
     'Taxa de Resposta (%)': relatorio.leadsRecebidos > 0 
       ? ((relatorio.respostasEnviadas / relatorio.leadsRecebidos) * 100).toFixed(2)

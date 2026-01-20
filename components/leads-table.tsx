@@ -140,7 +140,7 @@ export function LeadsTable({ relatorios, onEdit, onDelete, showVendedor = false 
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     <button onClick={() => handleSort('respostas')} className="flex items-center gap-1 hover:text-foreground">
-                                        Respostas <ArrowUpDown className="w-3 h-3" />
+                                        Respostas Recebidas <ArrowUpDown className="w-3 h-3" />
                                     </button>
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">

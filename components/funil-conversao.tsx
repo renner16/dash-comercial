@@ -67,10 +67,10 @@ export function FunilConversao({
           </div>
         </div>
 
-        {/* Estágio 2: Respostas Enviadas */}
+        {/* Estágio 2: Respostas Recebidas */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Respostas Enviadas</span>
+            <span className="font-medium">Respostas Recebidas</span>
             <span className="text-2xl font-bold text-green-600">{respostasEnviadas}</span>
           </div>
           <div className="w-full flex justify-center">
