@@ -491,7 +491,28 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
     return { diaInicio, diaFim }
   }
 
-  if (usarDadosSemanais) {
+  if (usarDadosDiarios && dia) {
+    // Projeção mensal baseada no mês do dia selecionado
+    const dataSelecionada = new Date(dia + 'T00:00:00')
+    const mesSelecionado = dataSelecionada.getMonth() + 1
+    const anoSelecionado = dataSelecionada.getFullYear()
+    const diasNoMesSelecionado = new Date(anoSelecionado, mesSelecionado, 0).getDate()
+
+    // Determinar data de referência: se mês selecionado é futuro, usar hoje; se passado, usar último dia do mês
+    const dataFimMes = new Date(anoSelecionado, mesSelecionado, 0, 23, 59, 59)
+    const dataReferencia = dataFimMes < hoje ? dataFimMes : hoje
+
+    // Calcular dias decorridos até a data de referência
+    const diasDecorridos = dataFimMes < hoje
+      ? diasNoMesSelecionado // Mês passado: todos os dias decorridos
+      : dataReferencia.getDate() // Mês atual ou futuro: dias até hoje
+
+    dadosProjecao = {
+      diasDecorridos: diasDecorridos,
+      diasNoMes: diasNoMesSelecionado,
+      proximaFaixa: null
+    }
+  } else if (usarDadosSemanais) {
     // Projeção semanal: calcular baseado na semana selecionada
     if (mes && semana && ano) {
       const { diaInicio, diaFim } = calcularIntervaloSemana(semana, mes, ano)
@@ -512,21 +533,35 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
         proximaFaixa: null
       }
     }
+  } else if (usarDadosAnuais && ano) {
+    // Projeção anual: calcular baseado no ano selecionado
+    const dataInicioAno = new Date(ano, 0, 1, 0, 0, 0) // 1º de janeiro
+    const dataFimAno = new Date(ano, 11, 31, 23, 59, 59) // 31 de dezembro
+    const diasNoAno = ano % 4 === 0 && (ano % 100 !== 0 || ano % 400 === 0) ? 366 : 365 // Ano bissexto
+    
+    // Determinar data de referência: se ano selecionado é futuro, usar hoje; se passado, usar último dia do ano
+    const dataReferencia = dataFimAno < hoje ? dataFimAno : hoje
+    
+    // Calcular dias decorridos desde o início do ano até a data de referência
+    const diasDecorridos = dataFimAno < hoje
+      ? diasNoAno // Ano passado: todos os dias decorridos
+      : Math.floor((dataReferencia.getTime() - dataInicioAno.getTime()) / (1000 * 60 * 60 * 24)) + 1 // Dias desde 1º de janeiro
+    
+    dadosProjecao = {
+      diasDecorridos: diasDecorridos,
+      diasNoMes: diasNoAno,
+      proximaFaixa: null
+    }
   } else if (usarDadosMensais) {
     // Projeção mensal: calcular baseado no mês selecionado
     let mesSelecionado: number | null = null
     let anoSelecionado: number | null = null
 
-    if (tipoVisao === 'diario' && dia) {
-      // Se for diário, usar o mês do dia selecionado
-      const dataSelecionada = new Date(dia + 'T00:00:00')
-      mesSelecionado = dataSelecionada.getMonth() + 1
-      anoSelecionado = dataSelecionada.getFullYear()
-    } else if (tipoVisao === 'mensal' && mes && ano) {
+    if (tipoVisao === 'mensal' && mes && ano) {
       mesSelecionado = mes
       anoSelecionado = ano
-    } else if (tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado') {
-      // Para anual, total, personalizado: usar mês atual
+    } else if (tipoVisao === 'total' || tipoVisao === 'personalizado') {
+      // Para total, personalizado: usar mês atual
       mesSelecionado = mesAtual
       anoSelecionado = anoAtual
     }
