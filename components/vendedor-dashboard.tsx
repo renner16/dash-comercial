@@ -1245,18 +1245,16 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       <div className={`grid gap-4 ${tipoVisao === 'total' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <SimpleLineChart
           title={
-            periodoRealRelatorios === 'mes' ? "Leads Recebidos" :
-              periodoRealRelatorios === 'semana' ? "Leads Recebidos por Semana" :
-                "Leads Recebidos por Dia"
+            periodoRealRelatorios === 'semana' ? "Leads Recebidos por Semana" :
+              "Leads Recebidos por Dia"
           }
           data={chartDataLeads}
           color="#3b82f6"
         />
         <SimpleLineChart
           title={
-            periodoRealRelatorios === 'mes' ? "Respostas Recebidas" :
-              periodoRealRelatorios === 'semana' ? "Respostas Recebidas por Semana" :
-                "Respostas Recebidas por Dia"
+            periodoRealRelatorios === 'semana' ? "Respostas Recebidas por Semana" :
+              "Respostas Recebidas por Dia"
           }
           data={chartDataRespostas}
           color="#f59e0b"

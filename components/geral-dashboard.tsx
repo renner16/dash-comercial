@@ -1,7 +1,7 @@
 'use client'
 // Build fix: corrige tipos TypeScript - adiciona personalizado
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DollarSign, ShoppingCart, TrendingUp, Download, Percent, Plus } from 'lucide-react'
 import { KPICard } from '@/components/kpi-card'
 import { VendasTable } from '@/components/vendas-table'
@@ -51,7 +51,7 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   const [vendaEdit, setVendaEdit] = useState<any>(null)
   const [vendedorSelecionado, setVendedorSelecionado] = useState<string>('')
 
-  const carregarDados = async () => {
+  const carregarDados = useCallback(async () => {
     setLoading(true)
     try {
       let params = ''
@@ -254,11 +254,11 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [mes, ano, dia, semana, tipoVisao, dataInicio, dataFim, periodoGrafico, periodoFunil])
 
   useEffect(() => {
     carregarDados()
-  }, [mes, ano, dia, semana, tipoVisao, dataInicio, dataFim, periodoGrafico, periodoFunil])
+  }, [carregarDados])
 
   // Função auxiliar para verificar se venda deve contar (apenas CONFIRMADAS)
   const vendaDeveContar = (v: any) => v.status === 'CONFIRMADA'
@@ -1134,18 +1134,16 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
       <div className={`grid gap-4 ${tipoVisao === 'total' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <SimpleLineChart
           title={
-            periodoRealRelatorios === 'mes' ? "Leads Recebidos" :
-              periodoRealRelatorios === 'semana' ? "Leads Recebidos por Semana" :
-                "Leads Recebidos por Dia"
+            periodoRealRelatorios === 'semana' ? "Leads Recebidos por Semana" :
+              "Leads Recebidos por Dia"
           }
           data={chartDataLeads}
           color="#3b82f6"
         />
         <SimpleLineChart
           title={
-            periodoRealRelatorios === 'mes' ? "Respostas Recebidas" :
-              periodoRealRelatorios === 'semana' ? "Respostas Recebidas por Semana" :
-                "Respostas Recebidas por Dia"
+            periodoRealRelatorios === 'semana' ? "Respostas Recebidas por Semana" :
+              "Respostas Recebidas por Dia"
           }
           data={chartDataRespostas}
           color="#f59e0b"
