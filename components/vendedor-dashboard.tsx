@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DollarSign, ShoppingCart, TrendingUp, Percent, Plus, Download } from 'lucide-react'
 import { KPICard } from '@/components/kpi-card'
 import { ProjecaoCard } from '@/components/projecao-card'
@@ -52,7 +52,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const [vendaEdit, setVendaEdit] = useState<any>(null)
   const [relatorioEdit, setRelatorioEdit] = useState<any>(null)
 
-  const carregarDados = async () => {
+  const carregarDados = useCallback(async () => {
     setLoading(true)
     try {
       let params = `vendedorId=${vendedor.id}`
@@ -259,11 +259,11 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [mes, ano, dia, semana, tipoVisao, dataInicio, dataFim, vendedor.id, periodoGrafico, periodoFunil])
 
   useEffect(() => {
     carregarDados()
-  }, [mes, ano, dia, semana, tipoVisao, dataInicio, dataFim, vendedor.id])
+  }, [carregarDados])
 
   // Função auxiliar para verificar se venda deve contar (apenas CONFIRMADAS)
   const vendaDeveContar = (v: any) => v.status === 'CONFIRMADA'
@@ -700,12 +700,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     let mesSelecionado: number | null = null
     let anoSelecionado: number | null = null
 
-    if (tipoVisao === 'diario' && dia) {
-      // Se for diário, usar o mês do dia selecionado
-      const dataSelecionada = new Date(dia + 'T00:00:00')
-      mesSelecionado = dataSelecionada.getMonth() + 1
-      anoSelecionado = dataSelecionada.getFullYear()
-    } else if (tipoVisao === 'mensal' && mes && ano) {
+    if (tipoVisao === 'mensal' && mes && ano) {
       mesSelecionado = mes
       anoSelecionado = ano
     } else if (tipoVisao === 'total' || tipoVisao === 'personalizado') {
