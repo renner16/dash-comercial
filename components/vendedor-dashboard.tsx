@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { DollarSign, ShoppingCart, TrendingUp, Percent, Plus, Download } from 'lucide-react'
+import { DollarSign, ShoppingCart, TrendingUp, Percent, Plus, Download, Eye, EyeOff } from 'lucide-react'
 import { KPICard } from '@/components/kpi-card'
 import { ProjecaoCard } from '@/components/projecao-card'
 import { FunilConversao } from '@/components/funil-conversao'
@@ -11,10 +11,14 @@ import { RelatorioDialog } from '@/components/relatorio-dialog'
 import { LeadsTable } from '@/components/leads-table'
 import { SimpleLineChart } from '@/components/charts'
 import { PeriodSelector } from '@/components/period-selector'
+import { ChecklistVendedor } from '@/components/checklist-vendedor'
+import { ObservacoesVendedor } from '@/components/observacoes-vendedor'
+import { NotificacoesRenovacao } from '@/components/notificacoes-renovacao'
+import { SidebarVendedor } from '@/components/sidebar-vendedor'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { calcularComissao, getInfoFaixa, getSalarioFixo, calcularRemuneracaoTotal, Cargo } from '@/lib/comissao'
 import { exportarParaCSV, formatarVendasParaExport, formatarRelatoriosParaExport } from '@/lib/export-utils'
 
@@ -24,9 +28,12 @@ interface VendedorDashboardProps {
     nome: string
     cargo: string
   }
+  activeTab?: string
+  onTabChange?: (tab: string) => void
+  onExportBackupReady?: (exportFn: () => void) => void
 }
 
-export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
+export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabChange: onTabChangeProp, onExportBackupReady }: VendedorDashboardProps) {
   const hoje = new Date()
   const anoAtual = hoje.getFullYear()
   const [mes, setMes] = useState<number | null>(hoje.getMonth() + 1)
@@ -46,11 +53,32 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const [relatoriosPeriodoAnterior, setRelatoriosPeriodoAnterior] = useState<any[]>([]) // Para comparação
   const [vendasMensais, setVendasMensais] = useState<any[]>([]) // Dados mensais (para meta e projeção quando diário)
   const [vendasSemanais, setVendasSemanais] = useState<any[]>([]) // Dados semanais (para meta e projeção quando semanal)
+  const [todasVendas, setTodasVendas] = useState<any[]>([]) // Todas as vendas (para renovações)
+  const [todosRelatorios, setTodosRelatorios] = useState<any[]>([]) // Todos os relatórios (para renovações)
   const [loading, setLoading] = useState(true)
   const [vendaDialogOpen, setVendaDialogOpen] = useState(false)
   const [relatorioDialogOpen, setRelatorioDialogOpen] = useState(false)
   const [vendaEdit, setVendaEdit] = useState<any>(null)
   const [relatorioEdit, setRelatorioEdit] = useState<any>(null)
+  const [activeTabInternal, setActiveTabInternal] = useState('visao-geral')
+  const [valoresVisiveis, setValoresVisiveis] = useState(false)
+  const [periodoGraficoFinanceiro, setPeriodoGraficoFinanceiro] = useState<'auto' | 'dia' | 'semana' | 'mes'>('auto')
+  const [periodoGraficoLeads, setPeriodoGraficoLeads] = useState<'auto' | 'dia' | 'semana' | 'mes'>('auto')
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`sidebarOpen_${vendedor.id}`)
+      return saved !== null ? saved === 'true' : true
+    }
+    return true
+  })
+  
+  // Usar prop se fornecida, senão usar estado interno
+  // Usar activeTabInternal como fonte da verdade, mas sincronizar com prop externa
+  const activeTab = activeTabInternal
+  const setActiveTab = (tab: string) => {
+    setActiveTabInternal(tab)
+    onTabChangeProp?.(tab)
+  }
 
   const carregarDados = useCallback(async () => {
     setLoading(true)
@@ -201,13 +229,16 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       }
 
       // Buscar dados do período exato (KPIs), expandidos (gráficos) e período anterior (comparação)
+      // Também buscar TODAS as vendas e relatórios para renovações (sem filtro de período)
       const promises = [
         fetch(`/api/vendas?${params}`),
         fetch(`/api/relatorios?${params}`),
         fetch(`/api/vendas?${paramsGraficos}`),
         fetch(`/api/relatorios?${paramsGraficos}`),
         fetch(`/api/vendas?${paramsPeriodoAnterior}`),
-        fetch(`/api/relatorios?${paramsPeriodoAnterior}`)
+        fetch(`/api/relatorios?${paramsPeriodoAnterior}`),
+        fetch(`/api/vendas?vendedorId=${vendedor.id}`), // Todas as vendas para renovações
+        fetch(`/api/relatorios?vendedorId=${vendedor.id}`) // Todos os relatórios para renovações
       ]
 
       // Buscar dados mensais se for diário
@@ -226,6 +257,8 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       const relatoriosGraficosData = await results[3].json()
       const vendasAnteriorData = await results[4].json()
       const relatoriosAnteriorData = await results[5].json()
+      const todasVendasData = await results[6].json()
+      const todosRelatoriosData = await results[7].json()
 
       setVendas(vendasData)
       setRelatorios(relatoriosData)
@@ -233,6 +266,8 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       setRelatoriosGraficos(relatoriosGraficosData)
       setVendasPeriodoAnterior(vendasAnteriorData)
       setRelatoriosPeriodoAnterior(relatoriosAnteriorData)
+      setTodasVendas(todasVendasData)
+      setTodosRelatorios(todosRelatoriosData)
 
       // Armazenar dados mensais/semanais para meta e projeção
       if (tipoVisao === 'diario' && results[6]) {
@@ -265,12 +300,36 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     carregarDados()
   }, [carregarDados])
 
+  // Carregar estado de visibilidade dos valores do localStorage
+  useEffect(() => {
+    const visibilidadeSalva = localStorage.getItem(`valoresVisiveis_${vendedor.id}`)
+    if (visibilidadeSalva === 'true') {
+      setValoresVisiveis(true)
+    }
+  }, [vendedor.id])
+
+  // Salvar estado de visibilidade dos valores no localStorage
+  useEffect(() => {
+    localStorage.setItem(`valoresVisiveis_${vendedor.id}`, valoresVisiveis.toString())
+  }, [valoresVisiveis, vendedor.id])
+
   // Função auxiliar para verificar se venda deve contar (apenas CONFIRMADAS)
   const vendaDeveContar = (v: any) => v.status === 'CONFIRMADA'
 
+  // Robustez anti-crash: garantir que arrays sejam sempre arrays
+  const vendasSeguras = Array.isArray(vendas) ? vendas : []
+  const relatoriosSeguros = Array.isArray(relatorios) ? relatorios : []
+  const vendasGraficosSeguras = Array.isArray(vendasGraficos) ? vendasGraficos : []
+  const relatoriosGraficosSeguros = Array.isArray(relatoriosGraficos) ? relatoriosGraficos : []
+  const vendasPeriodoAnteriorSeguras = Array.isArray(vendasPeriodoAnterior) ? vendasPeriodoAnterior : []
+  const relatoriosPeriodoAnteriorSeguros = Array.isArray(relatoriosPeriodoAnterior) ? relatoriosPeriodoAnterior : []
+  const vendasMensaisSeguras = Array.isArray(vendasMensais) ? vendasMensais : []
+  const vendasSemanaisSeguras = Array.isArray(vendasSemanais) ? vendasSemanais : []
+
+
   // Calcular KPIs do período atual
-  const vendasConfirmadas = vendas.filter(vendaDeveContar)
-  const faturamento = vendasConfirmadas.reduce((sum, v) => sum + v.valor, 0)
+  const vendasConfirmadas = vendasSeguras.filter(vendaDeveContar)
+  const faturamento = vendasConfirmadas.reduce((sum, v) => sum + (v?.valor || 0), 0)
   const qtdVendas = vendasConfirmadas.length
   const ticketMedio = qtdVendas > 0 ? faturamento / qtdVendas : 0
 
@@ -333,17 +392,17 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   const infoFaixa = getInfoFaixa(vendedor.cargo as Cargo, faturamentoParaComissao)
 
   // Calcular KPIs do período anterior (para comparação)
-  const vendasConfirmadasAnterior = vendasPeriodoAnterior.filter(vendaDeveContar)
-  const faturamentoAnterior = vendasConfirmadasAnterior.reduce((sum, v) => sum + v.valor, 0)
+  const vendasConfirmadasAnterior = vendasPeriodoAnteriorSeguras.filter(vendaDeveContar)
+  const faturamentoAnterior = vendasConfirmadasAnterior.reduce((sum, v) => sum + (v?.valor || 0), 0)
   const qtdVendasAnterior = vendasConfirmadasAnterior.length
   const ticketMedioAnterior = qtdVendasAnterior > 0 ? faturamentoAnterior / qtdVendasAnterior : 0
   const comissaoAnterior = calcularComissao(vendedor.cargo as Cargo, faturamentoAnterior)
 
   // Calcular KPIs de relatórios
-  const leadsRecebidos = relatorios.reduce((sum, r) => sum + r.leadsRecebidos, 0)
-  const respostasEnviadas = relatorios.reduce((sum, r) => sum + r.respostasEnviadas, 0)
-  const leadsRecebidosAnterior = relatoriosPeriodoAnterior.reduce((sum, r) => sum + r.leadsRecebidos, 0)
-  const respostasEnviadasAnterior = relatoriosPeriodoAnterior.reduce((sum, r) => sum + r.respostasEnviadas, 0)
+  const leadsRecebidos = relatoriosSeguros.reduce((sum, r) => sum + (r?.leadsRecebidos || 0), 0)
+  const respostasEnviadas = relatoriosSeguros.reduce((sum, r) => sum + (r?.respostasEnviadas || 0), 0)
+  const leadsRecebidosAnterior = relatoriosPeriodoAnteriorSeguros.reduce((sum, r) => sum + (r?.leadsRecebidos || 0), 0)
+  const respostasEnviadasAnterior = relatoriosPeriodoAnteriorSeguros.reduce((sum, r) => sum + (r?.respostasEnviadas || 0), 0)
 
   // Calcular variações percentuais
   const calcularVariacao = (atual: number, anterior: number) => {
@@ -366,9 +425,9 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
           : ''
 
   // Adicionar comissão estimada nas vendas
-  const vendasComComissao = vendas.map(v => ({
+  const vendasComComissao = vendasSeguras.map(v => ({
     ...v,
-    comissaoEstimada: vendaDeveContar(v) ? v.valor * infoFaixa.percentual : 0
+    comissaoEstimada: vendaDeveContar(v) ? (v?.valor || 0) * infoFaixa.percentual : 0
   }))
 
   // Determinar período real do gráfico para vendas
@@ -383,15 +442,15 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     : periodoGrafico === 'semana' ? 'semana' : periodoGrafico === 'mes' ? 'dia' : 'dia'
 
   // Filtrar vendas confirmadas dos dados de gráficos
-  const vendasConfirmadasGraficos = vendasGraficos.filter(vendaDeveContar)
+  const vendasConfirmadasGraficos = vendasGraficosSeguras.filter(vendaDeveContar)
 
   // Preparar dados para gráficos de vendas (usa dados expandidos)
   const chartDataFaturamento = prepararDadosChart(vendasConfirmadasGraficos, 'valor', tipoVisao, periodoReal, semana, mes, ano)
   const chartDataQuantidade = prepararDadosChart(vendasConfirmadasGraficos, 'count', tipoVisao, periodoReal, semana, mes, ano)
 
   // Preparar dados para gráficos de relatórios (usa dados expandidos com período diário quando automático)
-  const chartDataLeads = prepararDadosChartRelatorios(relatoriosGraficos, 'leadsRecebidos', tipoVisao, periodoRealRelatorios, semana, mes, ano)
-  const chartDataRespostas = prepararDadosChartRelatorios(relatoriosGraficos, 'respostasEnviadas', tipoVisao, periodoRealRelatorios, semana, mes, ano)
+  const chartDataLeads = prepararDadosChartRelatorios(relatoriosGraficosSeguros, 'leadsRecebidos', tipoVisao, periodoRealRelatorios, semana, mes, ano)
+  const chartDataRespostas = prepararDadosChartRelatorios(relatoriosGraficosSeguros, 'respostasEnviadas', tipoVisao, periodoRealRelatorios, semana, mes, ano)
 
   // Verificar se o período inclui 2025 (ano atual)
   // Se incluir, filtrar dados para apenas 2025 nas métricas de conversão
@@ -405,11 +464,11 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
 
   // Filtrar dados para métricas de conversão (apenas 2025 quando período incluir 2025)
   const relatoriosParaConversao = periodoInclui2025
-    ? relatorios.filter(r => new Date(r.data).getFullYear() === anoAtual)
-    : relatorios
+    ? relatoriosSeguros.filter(r => r?.data && new Date(r.data).getFullYear() === anoAtual)
+    : relatoriosSeguros
   
   const vendasParaConversao = periodoInclui2025
-    ? vendasConfirmadas.filter(v => new Date(v.data).getFullYear() === anoAtual)
+    ? vendasConfirmadas.filter(v => v?.data && new Date(v.data).getFullYear() === anoAtual)
     : vendasConfirmadas
 
   // Calcular dados de leads (para métricas de conversão, usar apenas dados de 2025 quando período incluir 2025)
@@ -434,26 +493,46 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     const primeiroDiaMes = new Date(ano, mes - 1, 1)
     const diasNoMes = new Date(ano, mes, 0).getDate()
 
-    let diaInicio = 1
-    let semanaAtual = 1
-
-    for (let dia = 1; dia <= diasNoMes; dia++) {
+    // Encontrar a primeira quarta-feira do mês
+    let primeiraQuarta = 1
+    for (let dia = 1; dia <= 7; dia++) {
       const data = new Date(ano, mes - 1, dia)
-      if (semanaAtual === numeroSemana) {
-        diaInicio = dia
+      if (data.getDay() === 3) { // Quarta-feira
+        primeiraQuarta = dia
         break
-      }
-      if (data.getDay() === 6) {
-        semanaAtual++
       }
     }
 
-    let diaFim = diaInicio
-    for (let dia = diaInicio; dia <= diasNoMes; dia++) {
-      const data = new Date(ano, mes - 1, dia)
-      diaFim = dia
-      if (data.getDay() === 6) {
-        break
+    // Calcular início da semana solicitada
+    // Semana 1: começa na primeira quarta (ou dia 1 se mês começa na quarta)
+    let diaInicio = primeiraQuarta
+    if (numeroSemana > 1) {
+      // Cada semana adicional = 7 dias após a anterior
+      diaInicio = primeiraQuarta + (numeroSemana - 1) * 7
+    }
+
+    // Se o início calculado está antes da primeira quarta, usar dia 1
+    if (numeroSemana === 1 && primeiroDiaMes.getDay() !== 3) {
+      diaInicio = 1
+    }
+
+    // Garantir que não ultrapasse os limites do mês
+    if (diaInicio > diasNoMes) {
+      diaInicio = diasNoMes
+    }
+
+    // Encontrar o dia final da semana (sempre terça-feira = 2, 7 dias após o início)
+    let diaFim = diaInicio + 6
+    // Ajustar se ultrapassar o mês
+    if (diaFim > diasNoMes) {
+      diaFim = diasNoMes
+    } else {
+      // Verificar se realmente termina numa terça-feira
+      const dataFim = new Date(ano, mes - 1, diaFim)
+      if (dataFim.getDay() !== 2) {
+        // Ajustar para a terça-feira mais próxima
+        const diff = (2 - dataFim.getDay() + 7) % 7
+        diaFim = Math.min(diaFim + diff, diasNoMes)
       }
     }
 
@@ -497,17 +576,17 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   // Calcular dados do funil baseado no período selecionado
   // Filtrar para apenas 2025 quando período incluir 2025
   const relatoriosFunilFiltrados = periodoInclui2025
-    ? relatorios.filter(r => new Date(r.data).getFullYear() === anoAtual)
-    : relatorios
+    ? relatoriosSeguros.filter(r => r?.data && new Date(r.data).getFullYear() === anoAtual)
+    : relatoriosSeguros
   const vendasFunilFiltradas = periodoInclui2025
-    ? vendasConfirmadas.filter(v => new Date(v.data).getFullYear() === anoAtual)
+    ? vendasConfirmadas.filter(v => v?.data && new Date(v.data).getFullYear() === anoAtual)
     : vendasConfirmadas
   
   const relatoriosFunil = filtrarDadosPorPeriodo(relatoriosFunilFiltrados)
   const vendasFunil = filtrarDadosPorPeriodo(vendasFunilFiltradas, 'data')
   
-  const leadsRecebidosFunil = relatoriosFunil.reduce((sum, r) => sum + r.leadsRecebidos, 0)
-  const respostasEnviadasFunil = relatoriosFunil.reduce((sum, r) => sum + r.respostasEnviadas, 0)
+  const leadsRecebidosFunil = relatoriosFunil.reduce((sum, r) => sum + (r?.leadsRecebidos || 0), 0)
+  const respostasEnviadasFunil = relatoriosFunil.reduce((sum, r) => sum + (r?.respostasEnviadas || 0), 0)
   const vendasFechadasFunil = vendasFunil.length
 
   // Calcular metas (baseado em vendas por semana)
@@ -541,24 +620,26 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   if (usarDadosDiarios && dia) {
     // Para diário, usar apenas as vendas do dia selecionado
     const dataSelecionada = new Date(dia + 'T00:00:00')
-    vendasParaMeta = vendas.filter(v => {
+    vendasParaMeta = vendasSeguras.filter(v => {
+      if (!v?.data) return false
       const dataVenda = new Date(v.data)
       return dataVenda.toISOString().split('T')[0] === dia && vendaDeveContar(v)
     })
   } else if (usarDadosSemanais) {
-    vendasParaMeta = vendasSemanais.filter(vendaDeveContar)
+    vendasParaMeta = vendasSemanaisSeguras.filter(vendaDeveContar)
   } else if (usarDadosAnuais && ano) {
     // Para anual, filtrar vendas do ano selecionado
-    vendasParaMeta = vendas.filter(v => {
+    vendasParaMeta = vendasSeguras.filter(v => {
+      if (!v?.data) return false
       const dataVenda = new Date(v.data)
       return dataVenda.getFullYear() === ano && vendaDeveContar(v)
     })
   } else if (usarDadosMensais) {
-    vendasParaMeta = vendasMensais.filter(vendaDeveContar)
+    vendasParaMeta = vendasMensaisSeguras.filter(vendaDeveContar)
   }
 
   const qtdVendasParaMeta = vendasParaMeta.length
-  const faturamentoParaMeta = vendasParaMeta.reduce((sum, v) => sum + v.valor, 0)
+  const faturamentoParaMeta = vendasParaMeta.reduce((sum, v) => sum + (v?.valor || 0), 0)
   
   // Calcular comissão para meta/projeção
   // Para anual, calcular comissão baseada no faturamento médio mensal e multiplicar por 12
@@ -606,31 +687,51 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
 
   const mesAtual = hoje.getMonth() + 1
 
-  // Função auxiliar para calcular intervalo da semana
+  // Função auxiliar para calcular intervalo da semana comercial (Quarta → Terça)
   const calcularIntervaloSemana = (numeroSemana: number, mes: number, ano: number) => {
     const primeiroDiaMes = new Date(ano, mes - 1, 1)
     const diasNoMes = new Date(ano, mes, 0).getDate()
 
-    let diaInicio = 1
-    let semanaAtual = 1
-
-    for (let dia = 1; dia <= diasNoMes; dia++) {
+    // Encontrar a primeira quarta-feira do mês
+    let primeiraQuarta = 1
+    for (let dia = 1; dia <= 7; dia++) {
       const data = new Date(ano, mes - 1, dia)
-      if (semanaAtual === numeroSemana) {
-        diaInicio = dia
+      if (data.getDay() === 3) { // Quarta-feira
+        primeiraQuarta = dia
         break
-      }
-      if (data.getDay() === 6) {
-        semanaAtual++
       }
     }
 
-    let diaFim = diaInicio
-    for (let dia = diaInicio; dia <= diasNoMes; dia++) {
-      const data = new Date(ano, mes - 1, dia)
-      diaFim = dia
-      if (data.getDay() === 6) {
-        break
+    // Calcular início da semana solicitada
+    // Semana 1: começa na primeira quarta (ou dia 1 se mês começa na quarta)
+    let diaInicio = primeiraQuarta
+    if (numeroSemana > 1) {
+      // Cada semana adicional = 7 dias após a anterior
+      diaInicio = primeiraQuarta + (numeroSemana - 1) * 7
+    }
+
+    // Se o início calculado está antes da primeira quarta, usar dia 1
+    if (numeroSemana === 1 && primeiroDiaMes.getDay() !== 3) {
+      diaInicio = 1
+    }
+
+    // Garantir que não ultrapasse os limites do mês
+    if (diaInicio > diasNoMes) {
+      diaInicio = diasNoMes
+    }
+
+    // Encontrar o dia final da semana (sempre terça-feira = 2, 7 dias após o início)
+    let diaFim = diaInicio + 6
+    // Ajustar se ultrapassar o mês
+    if (diaFim > diasNoMes) {
+      diaFim = diasNoMes
+    } else {
+      // Verificar se realmente termina numa terça-feira
+      const dataFim = new Date(ano, mes - 1, diaFim)
+      if (dataFim.getDay() !== 2) {
+        // Ajustar para a terça-feira mais próxima
+        const diff = (2 - dataFim.getDay() + 7) % 7
+        diaFim = Math.min(diaFim + diff, diasNoMes)
       }
     }
 
@@ -832,12 +933,12 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   }
 
   const handleExportarVendas = () => {
-    if (!vendas || vendas.length === 0) {
+    if (!vendasSeguras || vendasSeguras.length === 0) {
       alert('Não há vendas para exportar!')
       return
     }
 
-    const vendasFormatadas = vendas.map(venda => ({
+    const vendasFormatadas = vendasSeguras.map(venda => ({
       Data: formatDate(venda.data),
       Nome: venda.nome,
       Email: venda.email,
@@ -861,12 +962,12 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
   }
 
   const handleExportarRelatorios = () => {
-    if (!relatorios || relatorios.length === 0) {
+    if (!relatoriosSeguros || relatoriosSeguros.length === 0) {
       alert('Não há relatórios para exportar!')
       return
     }
 
-    const relatoriosFormatados = relatorios.map(relatorio => ({
+    const relatoriosFormatados = relatoriosSeguros.map(relatorio => ({
       Data: formatDate(relatorio.data),
       'Leads Recebidos': relatorio.leadsRecebidos,
       'Respostas Recebidas': relatorio.respostasEnviadas,
@@ -889,6 +990,61 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     )
   }
 
+  // Função para exportar backup completo
+  const handleExportarBackup = useCallback(() => {
+    try {
+      const vendasSeguras = Array.isArray(vendas) ? vendas : []
+      const relatoriosSeguros = Array.isArray(relatorios) ? relatorios : []
+      
+      // Carregar checklist e observações do localStorage
+      const checklistDiario = localStorage.getItem(`checklist_${vendedor.id}_diario`) || '[]'
+      const checklistSemanal = localStorage.getItem(`checklist_${vendedor.id}_semanal`) || '[]'
+      const checklistMensal = localStorage.getItem(`checklist_${vendedor.id}_mensal`) || '[]'
+      const observacoes = localStorage.getItem(`observacoes_${vendedor.id}`) || ''
+      const valoresVisiveisState = localStorage.getItem(`valoresVisiveis_${vendedor.id}`) || 'false'
+
+      const backup = {
+        vendedor: {
+          id: vendedor.id,
+          nome: vendedor.nome,
+          cargo: vendedor.cargo
+        },
+        dataExportacao: new Date().toISOString(),
+        vendas: vendasSeguras,
+        relatorios: relatoriosSeguros,
+        checklist: {
+          diario: JSON.parse(checklistDiario),
+          semanal: JSON.parse(checklistSemanal),
+          mensal: JSON.parse(checklistMensal)
+        },
+        observacoes: observacoes,
+        configuracoes: {
+          valoresVisiveis: valoresVisiveisState === 'true'
+        }
+      }
+
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `backup_${vendedor.nome.toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Erro ao exportar backup:', error)
+      alert('Erro ao exportar backup. Verifique o console para mais detalhes.')
+    }
+  }, [vendedor, vendas, relatorios])
+
+  // Expor função de exportar backup para o componente pai
+  useEffect(() => {
+    if (onExportBackupReady) {
+      onExportBackupReady(handleExportarBackup)
+    }
+  }, [handleExportarBackup, onExportBackupReady])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -897,9 +1053,35 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
     )
   }
 
+  // Função auxiliar para ocultar/mostrar valores
+  const formatarValorSensivel = (valor: number) => {
+    if (valoresVisiveis) {
+      return formatCurrency(valor)
+    }
+    return 'R$ ••••'
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Título */}
+    <>
+      {/* Sidebar Lateral */}
+      <SidebarVendedor
+        vendedor={vendedor}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onExportBackup={handleExportarBackup}
+        onToggle={setSidebarOpen}
+        notificacoesCount={0}
+      />
+
+      {/* Conteúdo Principal */}
+      <div className={cn(
+        "space-y-6 transition-all duration-300",
+        sidebarOpen ? "md:ml-64" : "md:ml-16"
+      )}>
+      {/* Sistema de Abas */}
+      {activeTab === 'visao-geral' && (
+        <>
+          {/* Título */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">{vendedor.nome}</h2>
@@ -954,7 +1136,7 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
         <KPICard
           title="Faturamento"
-          value={formatCurrency(faturamento)}
+          value={formatarValorSensivel(faturamento)}
           subtitle={infoFaixa.descricao}
           icon={DollarSign}
         />
@@ -966,12 +1148,12 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         />
         <KPICard
           title="Ticket Médio"
-          value={formatCurrency(ticketMedio)}
+          value={formatarValorSensivel(ticketMedio)}
           icon={TrendingUp}
         />
         <KPICard
           title="Comissão"
-          value={formatCurrency(comissao)}
+          value={formatarValorSensivel(comissao)}
           subtitle={`Alíquota: ${infoFaixa.percentualFormatado}`}
           icon={Percent}
         />
@@ -980,15 +1162,28 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
             <CardTitle className="text-sm font-medium">
               Salário Total
             </CardTitle>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23" />
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setValoresVisiveis(!valoresVisiveis)}
+                className="p-1 hover:bg-white/20 rounded transition-colors"
+                title={valoresVisiveis ? "Ocultar valores" : "Mostrar valores"}
+              >
+                {valoresVisiveis ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+              </button>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(salarioTotal)}</div>
+            <div className="text-2xl font-bold">{formatarValorSensivel(salarioTotal)}</div>
             <p className="text-xs text-green-100 mt-1">
-              Fixo: {formatCurrency(salarioFixoParaExibicao)} + Comissão: {formatCurrency(comissao)}
+              Fixo: {formatarValorSensivel(salarioFixoParaExibicao)} + Comissão: {formatarValorSensivel(comissao)}
             </p>
           </CardContent>
         </Card>
@@ -1077,6 +1272,11 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
             <p className="text-xs text-muted-foreground mt-1">
               Vendas / Leads recebidos
             </p>
+            {respostasEnviadasPeriodo > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {((qtdVendasParaConversao / respostasEnviadasPeriodo) * 100).toFixed(1)}% sobre respostas
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -1330,8 +1530,401 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
           />
         </CardContent>
       </Card>
+            </>
+          )}
 
-      {/* Dialogs */}
+          {/* Aba Faturamento */}
+          {activeTab === 'faturamento' && (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold tracking-tight">Faturamento</h2>
+              <PeriodSelector
+                mes={mes}
+                ano={ano}
+                dia={dia}
+                semana={semana}
+                tipoVisao={tipoVisao}
+                dataInicio={dataInicio}
+                dataFim={dataFim}
+                onMesChange={setMes}
+                onAnoChange={setAno}
+                onDiaChange={setDia}
+                onSemanaChange={setSemana}
+                onTipoVisaoChange={setTipoVisao}
+                onDataInicioChange={setDataInicio}
+                onDataFimChange={setDataFim}
+              />
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <KPICard
+                  title="Faturamento"
+                  value={formatarValorSensivel(faturamento)}
+                  subtitle={infoFaixa.descricao}
+                  icon={DollarSign}
+                />
+                <KPICard
+                  title="Vendas Confirmadas"
+                  value={qtdVendas.toString()}
+                  subtitle="No período"
+                  icon={ShoppingCart}
+                />
+                <KPICard
+                  title="Ticket Médio"
+                  value={formatarValorSensivel(ticketMedio)}
+                  icon={TrendingUp}
+                />
+                <KPICard
+                  title="Comissão"
+                  value={formatarValorSensivel(comissao)}
+                  subtitle={`Alíquota: ${infoFaixa.percentualFormatado}`}
+                  icon={Percent}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Gráficos de Faturamento</h3>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground">Visualizar por:</label>
+                  <Select value={periodoGraficoFinanceiro} onValueChange={(v: any) => setPeriodoGraficoFinanceiro(v)}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Automático</SelectItem>
+                      <SelectItem value="dia">Por Dia</SelectItem>
+                      <SelectItem value="semana">Por Semana</SelectItem>
+                      <SelectItem value="mes">Por Mês</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                <SimpleLineChart
+                  title={
+                    periodoReal === 'mes' ? "Faturamento por Mês" :
+                      periodoReal === 'semana' ? "Faturamento por Semana" :
+                        "Faturamento por Dia"
+                  }
+                  data={chartDataFaturamento}
+                  color="#8b5cf6"
+                />
+                <SimpleLineChart
+                  title={
+                    periodoReal === 'mes' ? "Quantidade de Vendas por Mês" :
+                      periodoReal === 'semana' ? "Quantidade de Vendas por Semana" :
+                        "Quantidade de Vendas por Dia"
+                  }
+                  data={chartDataQuantidade}
+                  color="#10b981"
+                />
+              </div>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Vendas do Período</CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setVendaEdit(null)
+                        setVendaDialogOpen(true)
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <VendasTable
+                    vendas={vendasComComissao}
+                    onEdit={(venda) => {
+                      setVendaEdit(venda)
+                      setVendaDialogOpen(true)
+                    }}
+                    onDelete={handleDeleteVenda}
+                    showComissao
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Aba Leads */}
+          {activeTab === 'leads' && (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold tracking-tight">Leads</h2>
+              <PeriodSelector
+                mes={mes}
+                ano={ano}
+                dia={dia}
+                semana={semana}
+                tipoVisao={tipoVisao}
+                dataInicio={dataInicio}
+                dataFim={dataFim}
+                onMesChange={setMes}
+                onAnoChange={setAno}
+                onDiaChange={setDia}
+                onSemanaChange={setSemana}
+                onTipoVisaoChange={setTipoVisao}
+                onDataInicioChange={setDataInicio}
+                onDataFimChange={setDataFim}
+              />
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Leads Recebidos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600">{leadsRecebidosPeriodo}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Respostas Recebidas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600">{respostasEnviadasPeriodo}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Taxa de Resposta
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-purple-600">{taxaRespostaPeriodo}%</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Conversão de Vendas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-600">{taxaConversaoPeriodo}%</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Vendas / Leads recebidos
+                    </p>
+                    {respostasEnviadasPeriodo > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {((qtdVendasParaConversao / respostasEnviadasPeriodo) * 100).toFixed(1)}% sobre respostas
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Gráficos de Leads</h3>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground">Visualizar por:</label>
+                  <Select value={periodoGraficoLeads} onValueChange={(v: any) => setPeriodoGraficoLeads(v)}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Automático</SelectItem>
+                      <SelectItem value="dia">Por Dia</SelectItem>
+                      <SelectItem value="semana">Por Semana</SelectItem>
+                      <SelectItem value="mes">Por Mês</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                <SimpleLineChart
+                  title={
+                    periodoRealRelatorios === 'semana' ? "Leads Recebidos por Semana" :
+                      "Leads Recebidos por Dia"
+                  }
+                  data={chartDataLeads}
+                  color="#3b82f6"
+                />
+                <SimpleLineChart
+                  title={
+                    periodoRealRelatorios === 'semana' ? "Respostas Recebidas por Semana" :
+                      "Respostas Recebidas por Dia"
+                  }
+                  data={chartDataRespostas}
+                  color="#f59e0b"
+                />
+              </div>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Leads do Período</CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setRelatorioEdit(null)
+                        setRelatorioDialogOpen(true)
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <LeadsTable
+                    relatorios={relatoriosSeguros.map(r => ({
+                      ...r,
+                      data: new Date(r.data),
+                      vendedorNome: vendedor.nome
+                    }))}
+                    onEdit={(rel) => {
+                      setRelatorioEdit(rel)
+                      setRelatorioDialogOpen(true)
+                    }}
+                    onDelete={handleDeleteRelatorio}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Aba Metas */}
+          {activeTab === 'metas' && (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold tracking-tight">Metas</h2>
+              <PeriodSelector
+                mes={mes}
+                ano={ano}
+                dia={dia}
+                semana={semana}
+                tipoVisao={tipoVisao}
+                dataInicio={dataInicio}
+                dataFim={dataFim}
+                onMesChange={setMes}
+                onAnoChange={setAno}
+                onDiaChange={setDia}
+                onSemanaChange={setSemana}
+                onTipoVisaoChange={setTipoVisao}
+                onDataInicioChange={setDataInicio}
+                onDataFimChange={setDataFim}
+              />
+              {(usarDadosDiarios || usarDadosSemanais || usarDadosMensais || usarDadosAnuais) && tipoVisao !== 'total' && (
+                <>
+                  <Card className={`${metaAtingida ? 'bg-gradient-to-br from-green-500/10 to-emerald-600/5 border-green-500/30' : 'bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/30'}`}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">
+                          🎯 Meta de Vendas
+                        </CardTitle>
+                        <span className={`text-lg font-bold ${metaAtingida ? 'text-green-600' : 'text-blue-600'}`}>
+                          {textoPeriodoMeta}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">Quantidade de Vendas</span>
+                          <span className={`font-bold ${metaAtingidaVendas ? 'text-green-600' : 'text-blue-600'}`}>
+                            {qtdVendasParaMeta}/{metaVendas}
+                          </span>
+                        </div>
+                        <div className="h-3 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-500 ${metaAtingidaVendas ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}
+                            style={{ width: `${Math.min(100, progressoMetaVendas)}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Progresso: {Math.min(100, progressoMetaVendas).toFixed(0)}%</span>
+                          {metaAtingidaVendas ? (
+                            <span className="text-green-600">✅ Meta atingida!</span>
+                          ) : (
+                            <span>Faltam {metaVendas - qtdVendasParaMeta} vendas</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-2 pt-2 border-t border-border">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">Faturamento</span>
+                          <span className={`font-bold ${metaAtingidaFaturamento ? 'text-green-600' : 'text-blue-600'}`}>
+                            {formatCurrency(faturamentoParaMeta)}/{formatCurrency(metaFaturamento)}
+                          </span>
+                        </div>
+                        <div className="h-3 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-500 ${metaAtingidaFaturamento ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}
+                            style={{ width: `${Math.min(100, progressoMetaFaturamento)}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Progresso: {Math.min(100, progressoMetaFaturamento).toFixed(0)}%</span>
+                          {metaAtingidaFaturamento ? (
+                            <span className="text-green-600">✅ Meta atingida!</span>
+                          ) : (
+                            <span>Faltam {formatCurrency(metaFaturamento - faturamentoParaMeta)}</span>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  {metaAtingida && (
+                    <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/30">
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          🏆 Medalha de Ouro — Meta Batida!
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground">
+                          Parabéns! Você atingiu a meta de vendas em {formatDate(new Date())}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+              {dadosProjecao && tipoVisao !== 'total' && (
+                <ProjecaoCard
+                  faturamentoAtual={faturamentoParaMeta}
+                  comissaoAtual={comissaoParaMeta}
+                  salarioFixo={usarDadosAnuais ? salarioFixo * 12 : salarioFixo}
+                  diasDecorridos={dadosProjecao.diasDecorridos}
+                  diasNoMes={dadosProjecao.diasNoMes}
+                  proximaFaixa={dadosProjecao.proximaFaixa}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Aba Checklist */}
+          {activeTab === 'checklist' && (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold tracking-tight">Checklist</h2>
+              <ChecklistVendedor vendedorId={vendedor.id} />
+            </div>
+          )}
+
+          {/* Aba Renovações */}
+          {activeTab === 'notificacoes' && (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold tracking-tight">Renovações</h2>
+              <NotificacoesRenovacao 
+                vendas={Array.isArray(todasVendas) ? todasVendas : []} 
+                vendedorId={vendedor.id}
+                relatorios={Array.isArray(todosRelatorios) ? todosRelatorios : []}
+              />
+            </div>
+          )}
+
+          {/* Aba Observações */}
+          {activeTab === 'observacoes' && (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold tracking-tight">Observações</h2>
+              <ObservacoesVendedor vendedorId={vendedor.id} />
+            </div>
+          )}
+
+      {/* Dialogs (sempre visíveis) */}
       <VendaDialog
         open={vendaDialogOpen}
         onOpenChange={setVendaDialogOpen}
@@ -1347,31 +1940,41 @@ export function VendedorDashboard({ vendedor }: VendedorDashboardProps) {
         relatorio={relatorioEdit}
         vendedorId={vendedor.id}
       />
-    </div>
+      </div>
+    </>
   )
 }
 
-// Retorna o número da semana no mês (1-6) baseado em domingo=0 a sábado=6
+// Retorna o número da semana no mês (1-6) baseado em semana comercial (Quarta → Terça)
+// 0=domingo, 1=segunda, 2=terça, 3=quarta, 4=quinta, 5=sexta, 6=sábado
 function getWeekOfMonth(date: Date): number {
   const primeiroDiaMes = new Date(date.getFullYear(), date.getMonth(), 1)
   const diaDaSemanaInicio = primeiroDiaMes.getDay() // 0=domingo, 1=segunda, ..., 6=sábado
 
   const diaAtual = date.getDate()
 
-  // Calcular quantos dias desde o início do mês até o primeiro domingo
-  // Se o mês começa num domingo (0), não precisa ajustar
-  // Se começa numa segunda (1), precisa de 6 dias até o domingo, etc.
-  const diasAteSegundaSemana = 7 - diaDaSemanaInicio
+  // Ajustar para semana comercial: quarta-feira (3) é o início da semana
+  // Se o mês começa numa quarta (3), não precisa ajustar
+  // Se começa numa quinta (4), precisa de 6 dias até a próxima quarta, etc.
+  // Se começa numa terça (2), a primeira semana já começou (semana anterior)
+  let diasAtePrimeiraQuarta = 0
+  if (diaDaSemanaInicio <= 2) {
+    // Se começa em domingo (0), segunda (1) ou terça (2), a primeira quarta está a (3 - diaDaSemanaInicio) dias
+    diasAtePrimeiraQuarta = 3 - diaDaSemanaInicio
+  } else {
+    // Se começa em quinta (4), sexta (5) ou sábado (6), a primeira quarta está a (10 - diaDaSemanaInicio) dias
+    diasAtePrimeiraQuarta = 10 - diaDaSemanaInicio
+  }
 
-  if (diaAtual <= diasAteSegundaSemana) {
+  if (diaAtual <= diasAtePrimeiraQuarta) {
     return 1 // Primeira semana (pode ser parcial)
   }
 
   // Dias restantes após a primeira semana
-  const diasAposSegundaSemana = diaAtual - diasAteSegundaSemana
+  const diasAposPrimeiraSemana = diaAtual - diasAtePrimeiraQuarta
 
   // Cada 7 dias completos = 1 semana adicional
-  const semanasCompletas = Math.floor(diasAposSegundaSemana / 7)
+  const semanasCompletas = Math.floor(diasAposPrimeiraSemana / 7)
 
   return 2 + semanasCompletas
 }
@@ -1474,7 +2077,7 @@ function prepararDadosChart(
           break
         }
 
-        if (diaDaSemana === 6) { // Sábado = fim da semana
+        if (diaDaSemana === 2) { // Terça-feira = fim da semana comercial
           semanaAtual++
         }
       }
@@ -1484,7 +2087,7 @@ function prepararDadosChart(
       for (let dia = diaInicio; dia <= diasNoMes; dia++) {
         const data = new Date(ano, mes - 1, dia)
         diaFim = dia
-        if (data.getDay() === 6) { // Sábado
+        if (data.getDay() === 2) { // Terça-feira = fim da semana comercial
           break
         }
       }
@@ -1640,7 +2243,7 @@ function prepararDadosChartRelatorios(
           break
         }
 
-        if (diaDaSemana === 6) { // Sábado = fim da semana
+        if (diaDaSemana === 2) { // Terça-feira = fim da semana comercial
           semanaAtual++
         }
       }
@@ -1650,7 +2253,7 @@ function prepararDadosChartRelatorios(
       for (let dia = diaInicio; dia <= diasNoMes; dia++) {
         const data = new Date(ano, mes - 1, dia)
         diaFim = dia
-        if (data.getDay() === 6) { // Sábado
+        if (data.getDay() === 2) { // Terça-feira = fim da semana comercial
           break
         }
       }
