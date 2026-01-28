@@ -465,26 +465,46 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
     const primeiroDiaMes = new Date(ano, mes - 1, 1)
     const diasNoMes = new Date(ano, mes, 0).getDate()
 
-    let diaInicio = 1
-    let semanaAtual = 1
-
-    for (let dia = 1; dia <= diasNoMes; dia++) {
+    // Encontrar a primeira quarta-feira do mês
+    let primeiraQuarta = 1
+    for (let dia = 1; dia <= 7; dia++) {
       const data = new Date(ano, mes - 1, dia)
-      if (semanaAtual === numeroSemana) {
-        diaInicio = dia
+      if (data.getDay() === 3) { // Quarta-feira
+        primeiraQuarta = dia
         break
-      }
-      if (data.getDay() === 6) {
-        semanaAtual++
       }
     }
 
-    let diaFim = diaInicio
-    for (let dia = diaInicio; dia <= diasNoMes; dia++) {
-      const data = new Date(ano, mes - 1, dia)
-      diaFim = dia
-      if (data.getDay() === 6) {
-        break
+    // Calcular início da semana solicitada
+    // Semana 1: começa na primeira quarta (ou dia 1 se mês começa na quarta)
+    let diaInicio = primeiraQuarta
+    if (numeroSemana > 1) {
+      // Cada semana adicional = 7 dias após a anterior
+      diaInicio = primeiraQuarta + (numeroSemana - 1) * 7
+    }
+
+    // Se o início calculado está antes da primeira quarta, usar dia 1
+    if (numeroSemana === 1 && primeiroDiaMes.getDay() !== 3) {
+      diaInicio = 1
+    }
+
+    // Garantir que não ultrapasse os limites do mês
+    if (diaInicio > diasNoMes) {
+      diaInicio = diasNoMes
+    }
+
+    // Encontrar o dia final da semana (sempre terça-feira = 2, 7 dias após o início)
+    let diaFim = diaInicio + 6
+    // Ajustar se ultrapassar o mês
+    if (diaFim > diasNoMes) {
+      diaFim = diasNoMes
+    } else {
+      // Verificar se realmente termina numa terça-feira
+      const dataFim = new Date(ano, mes - 1, diaFim)
+      if (dataFim.getDay() !== 2) {
+        // Ajustar para a terça-feira mais próxima
+        const diff = (2 - dataFim.getDay() + 7) % 7
+        diaFim = Math.min(diaFim + diff, diasNoMes)
       }
     }
 
@@ -623,26 +643,46 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
     const primeiroDiaMes = new Date(ano, mes - 1, 1)
     const diasNoMes = new Date(ano, mes, 0).getDate()
 
-    let diaInicio = 1
-    let semanaAtual = 1
-
-    for (let dia = 1; dia <= diasNoMes; dia++) {
+    // Encontrar a primeira quarta-feira do mês
+    let primeiraQuarta = 1
+    for (let dia = 1; dia <= 7; dia++) {
       const data = new Date(ano, mes - 1, dia)
-      if (semanaAtual === numeroSemana) {
-        diaInicio = dia
+      if (data.getDay() === 3) { // Quarta-feira
+        primeiraQuarta = dia
         break
-      }
-      if (data.getDay() === 6) {
-        semanaAtual++
       }
     }
 
-    let diaFim = diaInicio
-    for (let dia = diaInicio; dia <= diasNoMes; dia++) {
-      const data = new Date(ano, mes - 1, dia)
-      diaFim = dia
-      if (data.getDay() === 6) {
-        break
+    // Calcular início da semana solicitada
+    // Semana 1: começa na primeira quarta (ou dia 1 se mês começa na quarta)
+    let diaInicio = primeiraQuarta
+    if (numeroSemana > 1) {
+      // Cada semana adicional = 7 dias após a anterior
+      diaInicio = primeiraQuarta + (numeroSemana - 1) * 7
+    }
+
+    // Se o início calculado está antes da primeira quarta, usar dia 1
+    if (numeroSemana === 1 && primeiroDiaMes.getDay() !== 3) {
+      diaInicio = 1
+    }
+
+    // Garantir que não ultrapasse os limites do mês
+    if (diaInicio > diasNoMes) {
+      diaInicio = diasNoMes
+    }
+
+    // Encontrar o dia final da semana (sempre terça-feira = 2, 7 dias após o início)
+    let diaFim = diaInicio + 6
+    // Ajustar se ultrapassar o mês
+    if (diaFim > diasNoMes) {
+      diaFim = diasNoMes
+    } else {
+      // Verificar se realmente termina numa terça-feira
+      const dataFim = new Date(ano, mes - 1, diaFim)
+      if (dataFim.getDay() !== 2) {
+        // Ajustar para a terça-feira mais próxima
+        const diff = (2 - dataFim.getDay() + 7) % 7
+        diaFim = Math.min(diaFim + diff, diasNoMes)
       }
     }
 
@@ -1280,27 +1320,36 @@ export function GeralDashboard({ vendedores }: GeralDashboardProps) {
   )
 }
 
-// Retorna o número da semana no mês (1-6) baseado em domingo=0 a sábado=6
+// Retorna o número da semana no mês (1-6) baseado em semana comercial (Quarta → Terça)
+// 0=domingo, 1=segunda, 2=terça, 3=quarta, 4=quinta, 5=sexta, 6=sábado
 function getWeekOfMonth(date: Date): number {
   const primeiroDiaMes = new Date(date.getFullYear(), date.getMonth(), 1)
   const diaDaSemanaInicio = primeiroDiaMes.getDay() // 0=domingo, 1=segunda, ..., 6=sábado
 
   const diaAtual = date.getDate()
 
-  // Calcular quantos dias desde o início do mês até o primeiro domingo
-  // Se o mês começa num domingo (0), não precisa ajustar
-  // Se começa numa segunda (1), precisa de 6 dias até o domingo, etc.
-  const diasAteSegundaSemana = 7 - diaDaSemanaInicio
+  // Ajustar para semana comercial: quarta-feira (3) é o início da semana
+  // Se o mês começa numa quarta (3), não precisa ajustar
+  // Se começa numa quinta (4), precisa de 6 dias até a próxima quarta, etc.
+  // Se começa numa terça (2), a primeira semana já começou (semana anterior)
+  let diasAtePrimeiraQuarta = 0
+  if (diaDaSemanaInicio <= 2) {
+    // Se começa em domingo (0), segunda (1) ou terça (2), a primeira quarta está a (3 - diaDaSemanaInicio) dias
+    diasAtePrimeiraQuarta = 3 - diaDaSemanaInicio
+  } else {
+    // Se começa em quinta (4), sexta (5) ou sábado (6), a primeira quarta está a (10 - diaDaSemanaInicio) dias
+    diasAtePrimeiraQuarta = 10 - diaDaSemanaInicio
+  }
 
-  if (diaAtual <= diasAteSegundaSemana) {
+  if (diaAtual <= diasAtePrimeiraQuarta) {
     return 1 // Primeira semana (pode ser parcial)
   }
 
   // Dias restantes após a primeira semana
-  const diasAposSegundaSemana = diaAtual - diasAteSegundaSemana
+  const diasAposPrimeiraSemana = diaAtual - diasAtePrimeiraQuarta
 
   // Cada 7 dias completos = 1 semana adicional
-  const semanasCompletas = Math.floor(diasAposSegundaSemana / 7)
+  const semanasCompletas = Math.floor(diasAposPrimeiraSemana / 7)
 
   return 2 + semanasCompletas
 }
@@ -1389,30 +1438,46 @@ function prepararDadosChartVendas(
       const diasNoMes = new Date(ano, mes, 0).getDate()
       const mesesAbrev = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
-      let diaInicio = 1
-      let semanaAtual = 1
-
-      // Encontrar o dia de início da semana
-      for (let dia = 1; dia <= diasNoMes; dia++) {
+      // Encontrar a primeira quarta-feira do mês
+      let primeiraQuarta = 1
+      for (let dia = 1; dia <= 7; dia++) {
         const data = new Date(ano, mes - 1, dia)
-
-        if (semanaAtual === numeroSemana) {
-          diaInicio = dia
+        if (data.getDay() === 3) { // Quarta-feira
+          primeiraQuarta = dia
           break
-        }
-
-        if (data.getDay() === 6) { // Sábado = fim da semana
-          semanaAtual++
         }
       }
 
-      // Encontrar o dia final da semana
-      let diaFim = diaInicio
-      for (let dia = diaInicio; dia <= diasNoMes; dia++) {
-        const data = new Date(ano, mes - 1, dia)
-        diaFim = dia
-        if (data.getDay() === 6) { // Sábado
-          break
+      // Calcular início da semana solicitada
+      // Semana 1: começa na primeira quarta (ou dia 1 se mês começa na quarta)
+      let diaInicio = primeiraQuarta
+      if (numeroSemana > 1) {
+        // Cada semana adicional = 7 dias após a anterior
+        diaInicio = primeiraQuarta + (numeroSemana - 1) * 7
+      }
+
+      // Se o início calculado está antes da primeira quarta, usar dia 1
+      if (numeroSemana === 1 && primeiroDiaMes.getDay() !== 3) {
+        diaInicio = 1
+      }
+
+      // Garantir que não ultrapasse os limites do mês
+      if (diaInicio > diasNoMes) {
+        diaInicio = diasNoMes
+      }
+
+      // Encontrar o dia final da semana (sempre terça-feira = 2, 7 dias após o início)
+      let diaFim = diaInicio + 6
+      // Ajustar se ultrapassar o mês
+      if (diaFim > diasNoMes) {
+        diaFim = diasNoMes
+      } else {
+        // Verificar se realmente termina numa terça-feira
+        const dataFim = new Date(ano, mes - 1, diaFim)
+        if (dataFim.getDay() !== 2) {
+          // Ajustar para a terça-feira mais próxima
+          const diff = (2 - dataFim.getDay() + 7) % 7
+          diaFim = Math.min(diaFim + diff, diasNoMes)
         }
       }
 
@@ -1552,30 +1617,46 @@ function prepararDadosChartRelatorios(
       const diasNoMes = new Date(ano, mes, 0).getDate()
       const mesesAbrev = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
-      let diaInicio = 1
-      let semanaAtual = 1
-
-      // Encontrar o dia de início da semana
-      for (let dia = 1; dia <= diasNoMes; dia++) {
+      // Encontrar a primeira quarta-feira do mês
+      let primeiraQuarta = 1
+      for (let dia = 1; dia <= 7; dia++) {
         const data = new Date(ano, mes - 1, dia)
-
-        if (semanaAtual === numeroSemana) {
-          diaInicio = dia
+        if (data.getDay() === 3) { // Quarta-feira
+          primeiraQuarta = dia
           break
-        }
-
-        if (data.getDay() === 6) { // Sábado = fim da semana
-          semanaAtual++
         }
       }
 
-      // Encontrar o dia final da semana
-      let diaFim = diaInicio
-      for (let dia = diaInicio; dia <= diasNoMes; dia++) {
-        const data = new Date(ano, mes - 1, dia)
-        diaFim = dia
-        if (data.getDay() === 6) { // Sábado
-          break
+      // Calcular início da semana solicitada
+      // Semana 1: começa na primeira quarta (ou dia 1 se mês começa na quarta)
+      let diaInicio = primeiraQuarta
+      if (numeroSemana > 1) {
+        // Cada semana adicional = 7 dias após a anterior
+        diaInicio = primeiraQuarta + (numeroSemana - 1) * 7
+      }
+
+      // Se o início calculado está antes da primeira quarta, usar dia 1
+      if (numeroSemana === 1 && primeiroDiaMes.getDay() !== 3) {
+        diaInicio = 1
+      }
+
+      // Garantir que não ultrapasse os limites do mês
+      if (diaInicio > diasNoMes) {
+        diaInicio = diasNoMes
+      }
+
+      // Encontrar o dia final da semana (sempre terça-feira = 2, 7 dias após o início)
+      let diaFim = diaInicio + 6
+      // Ajustar se ultrapassar o mês
+      if (diaFim > diasNoMes) {
+        diaFim = diasNoMes
+      } else {
+        // Verificar se realmente termina numa terça-feira
+        const dataFim = new Date(ano, mes - 1, diaFim)
+        if (dataFim.getDay() !== 2) {
+          // Ajustar para a terça-feira mais próxima
+          const diff = (2 - dataFim.getDay() + 7) % 7
+          diaFim = Math.min(diaFim + diff, diasNoMes)
         }
       }
 

@@ -10,6 +10,41 @@ import { cn } from '@/lib/utils'
 // Registrar locale português
 registerLocale('pt-BR', ptBR)
 
+// Helper: Calcular início e fim da semana comercial (Quarta → Terça) para uma data qualquer
+function calcularSemanaComercial(date: Date | null): { inicio: Date; fim: Date } {
+  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+    // Se a data for inválida, usar data atual
+    const hoje = new Date()
+    date = hoje
+  }
+  
+  const diaDaSemana = date.getDay() // 0=domingo, 1=segunda, 2=terça, 3=quarta, 4=quinta, 5=sexta, 6=sábado
+  
+  // Calcular quantos dias retroceder para chegar na quarta-feira
+  let diasRetroceder = 0
+  if (diaDaSemana === 0) { // Domingo: retroceder 4 dias
+    diasRetroceder = 4
+  } else if (diaDaSemana === 1) { // Segunda: retroceder 5 dias
+    diasRetroceder = 5
+  } else if (diaDaSemana === 2) { // Terça: retroceder 6 dias
+    diasRetroceder = 6
+  } else if (diaDaSemana === 3) { // Quarta: já é o início
+    diasRetroceder = 0
+  } else { // Quinta, Sexta, Sábado: retroceder 1, 2 ou 3 dias
+    diasRetroceder = diaDaSemana - 3
+  }
+  
+  const inicio = new Date(date)
+  inicio.setDate(date.getDate() - diasRetroceder)
+  inicio.setHours(0, 0, 0, 0)
+  
+  const fim = new Date(inicio)
+  fim.setDate(inicio.getDate() + 6) // Terça-feira (6 dias após quarta)
+  fim.setHours(23, 59, 59, 999)
+  
+  return { inicio, fim }
+}
+
 interface PeriodSelectorProps {
   mes: number | null
   ano: number
@@ -65,31 +100,78 @@ export function PeriodSelector({
     return d.toLocaleDateString('pt-BR')
   }
 
-  // Calcular as semanas do mês dinamicamente (domingo a sábado)
+  // Calcular as semanas do mês dinamicamente (quarta a terça - semana comercial)
   const calcularSemanasDoMes = () => {
     if (!mes || !ano) return []
     
-    const primeiroDia = new Date(ano, mes - 1, 1)
-    const ultimoDia = new Date(ano, mes, 0)
-    const diasNoMes = ultimoDia.getDate()
+    const primeiroDiaMes = new Date(ano, mes - 1, 1)
+    const diasNoMes = new Date(ano, mes, 0).getDate()
     
     const semanas: Array<{ numero: number; inicio: number; fim: number }> = []
+    
+    // Encontrar a primeira quarta-feira do mês
+    let primeiraQuarta = 1
+    for (let dia = 1; dia <= 7; dia++) {
+      const data = new Date(ano, mes - 1, dia)
+      if (data.getDay() === 3) { // Quarta-feira
+        primeiraQuarta = dia
+        break
+      }
+    }
+    
+    // Semana 1: começa no dia 1 (pode ser parcial se mês não começa na quarta)
     let semanaAtual = 1
     let diaInicio = 1
     
-    for (let dia = 1; dia <= diasNoMes; dia++) {
-      const data = new Date(ano, mes - 1, dia)
-      const diaDaSemana = data.getDay() // 0=domingo, 6=sábado
+    // Se mês não começa na quarta, a primeira semana vai até a terça anterior à primeira quarta
+    if (primeiraQuarta > 1) {
+      // Primeira semana parcial: dia 1 até a terça antes da primeira quarta
+      const tercaAntesPrimeiraQuarta = primeiraQuarta - 1
+      semanas.push({
+        numero: semanaAtual,
+        inicio: 1,
+        fim: tercaAntesPrimeiraQuarta
+      })
+      semanaAtual++
+      diaInicio = primeiraQuarta
+    }
+    
+    // Processar semanas completas (quarta → terça)
+    while (diaInicio <= diasNoMes) {
+      // Encontrar o fim da semana (terça-feira, 7 dias após o início)
+      let diaFim = diaInicio + 6
       
-      // Se é sábado ou último dia do mês, fecha a semana
-      if (diaDaSemana === 6 || dia === diasNoMes) {
-        semanas.push({
-          numero: semanaAtual,
-          inicio: diaInicio,
-          fim: dia
-        })
-        semanaAtual++
-        diaInicio = dia + 1
+      // Ajustar se ultrapassar o mês
+      if (diaFim > diasNoMes) {
+        diaFim = diasNoMes
+      } else {
+        // Verificar se realmente termina numa terça-feira
+        const dataFim = new Date(ano, mes - 1, diaFim)
+        if (dataFim.getDay() !== 2) {
+          // Ajustar para a terça-feira mais próxima
+          const diff = (2 - dataFim.getDay() + 7) % 7
+          diaFim = Math.min(diaFim + diff, diasNoMes)
+        }
+      }
+      
+      semanas.push({
+        numero: semanaAtual,
+        inicio: diaInicio,
+        fim: diaFim
+      })
+      
+      semanaAtual++
+      diaInicio = diaFim + 1
+      
+      // Ajustar para a próxima quarta-feira
+      if (diaInicio <= diasNoMes) {
+        for (let d = diaInicio; d <= Math.min(diaInicio + 6, diasNoMes); d++) {
+          const data = new Date(ano, mes - 1, d)
+          if (data.getDay() === 3) { // Quarta-feira
+            diaInicio = d
+            break
+          }
+        }
       }
     }
     
@@ -153,47 +235,66 @@ export function PeriodSelector({
               selected={
                 semana && mes && ano
                   ? (() => {
-                      // Encontrar o primeiro dia da semana selecionada
-                      const primeiraData = new Date(ano, mes - 1, 1)
-                      let diaAtual = 1
-                      let semanaAtual = 1
-                      
-                      while (semanaAtual < semana && diaAtual <= new Date(ano, mes, 0).getDate()) {
-                        const data = new Date(ano, mes - 1, diaAtual)
-                        if (data.getDay() === 6) { // Sábado = fim da semana
-                          semanaAtual++
+                      try {
+                        let primeiraQuarta = 1
+                        for (let dia = 1; dia <= 7; dia++) {
+                          const data = new Date(ano, mes - 1, dia)
+                          if (data.getDay() === 3) {
+                            primeiraQuarta = dia
+                            break
+                          }
                         }
-                        diaAtual++
+                        let diaInicio = primeiraQuarta
+                        if (semana > 1) {
+                          diaInicio = primeiraQuarta + (semana - 1) * 7
+                        }
+                        const primeiroDiaMes = new Date(ano, mes - 1, 1)
+                        if (semana === 1 && primeiroDiaMes.getDay() !== 3) {
+                          diaInicio = 1
+                        }
+                        const diasNoMes = new Date(ano, mes, 0).getDate()
+                        if (diaInicio > diasNoMes) diaInicio = diasNoMes
+                        return new Date(ano, mes - 1, diaInicio)
+                      } catch {
+                        return new Date(ano, mes - 1, 1)
                       }
-                      
-                      return new Date(ano, mes - 1, diaAtual)
                     })()
                   : null
               }
               onChange={(date: Date | null) => {
-                if (date && onSemanaChange) {
-                  // Calcular qual semana do mês foi clicada
-                  const primeiroDiaMes = new Date(ano, mes - 1, 1)
-                  const diaDaSemanaInicio = primeiroDiaMes.getDay()
-                  const diaClicado = date.getDate()
+                if (!date || !onSemanaChange || !mes || !ano) return
+                try {
+                  const { inicio } = calcularSemanaComercial(date)
+                  if (!inicio) return
                   
-                  const diasAteSegundaSemana = 7 - diaDaSemanaInicio
+                  const primeiroDiaMes = new Date(ano, mes - 1, 1)
+                  const diaInicioSemana = inicio.getDate()
+                  
+                  let primeiraQuarta = 1
+                  for (let dia = 1; dia <= 7; dia++) {
+                    const data = new Date(ano, mes - 1, dia)
+                    if (data.getDay() === 3) {
+                      primeiraQuarta = dia
+                      break
+                    }
+                  }
                   
                   let numeroSemana = 1
-                  if (diaClicado > diasAteSegundaSemana) {
-                    const diasAposSegundaSemana = diaClicado - diasAteSegundaSemana
-                    numeroSemana = 2 + Math.floor((diasAposSegundaSemana - 1) / 7)
+                  if (primeiroDiaMes.getDay() === 3) {
+                    numeroSemana = diaInicioSemana <= primeiraQuarta ? 1 : 2 + Math.floor((diaInicioSemana - primeiraQuarta) / 7)
+                  } else {
+                    numeroSemana = diaInicioSemana < primeiraQuarta ? 1 : 2 + Math.floor((diaInicioSemana - primeiraQuarta) / 7)
                   }
                   
                   onSemanaChange(numeroSemana)
+                } catch (error) {
+                  console.error('Erro ao calcular semana:', error)
                 }
               }}
               locale="pt-BR"
-              dateFormat="'Semana' w 'de' MMMM yyyy"
-              showWeekNumbers
+              dateFormat="dd/MM/yyyy"
               openToDate={mes && ano ? new Date(ano, mes - 1, 1) : new Date()}
               onMonthChange={(date: Date | null) => {
-                // Atualizar mês e ano quando o usuário navega no calendário
                 if (date && onMesChange && onAnoChange) {
                   onMesChange(date.getMonth() + 1)
                   onAnoChange(date.getFullYear())
@@ -206,8 +307,6 @@ export function PeriodSelector({
                 "cursor-pointer"
               )}
               placeholderText="Clique para selecionar uma semana"
-              calendarClassName="week-picker"
-              showMonthYearPicker={false}
             />
           </div>
         )}

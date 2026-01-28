@@ -4,9 +4,26 @@ import { ExternalLink, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { ThemeToggle } from './theme-toggle'
 import { Button } from './ui/button'
+import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 
-export function Header() {
+interface Vendedor {
+  id: string
+  nome: string
+  cargo: string
+}
+
+interface HeaderProps {
+  vendedores?: Vendedor[]
+  activeTab?: string
+  onTabChange?: (tab: string) => void
+}
+
+export function Header({ 
+  vendedores = [], 
+  activeTab, 
+  onTabChange
+}: HeaderProps = {}) {
   const [isDark, setIsDark] = useState(true)
 
   useEffect(() => {
@@ -36,10 +53,10 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 sm:px-8">
-        <div className="flex items-center">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <Link 
             href="/#geral" 
-            className="relative flex items-center cursor-pointer hover:opacity-80 transition-opacity"
+            className="relative flex items-center cursor-pointer hover:opacity-80 transition-opacity shrink-0"
             onClick={(e) => {
               // Se já estiver na home, apenas muda a aba
               if (typeof window !== 'undefined' && window.location.pathname === '/') {
@@ -63,9 +80,46 @@ export function Header() {
               }}
             />
           </Link>
+
+          {/* Menu de Abas (Geral, Geovana, Kelvin, etc.) - ao lado da logo */}
+          {vendedores && vendedores.length > 0 && activeTab && onTabChange && (
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <div className="overflow-x-auto scrollbar-hide">
+                <div className="inline-flex gap-1 sm:gap-2 bg-muted/50 backdrop-blur-sm rounded-md p-1 h-9 sm:h-10">
+                  <button
+                    onClick={() => onTabChange('geral')}
+                    className={cn(
+                      "whitespace-nowrap px-3 sm:px-4 rounded-md text-sm font-medium transition-all",
+                      "hover:bg-background/50",
+                      activeTab === 'geral' 
+                        ? "bg-background shadow-sm text-primary" 
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    Geral
+                  </button>
+                  {vendedores.map(v => (
+                    <button
+                      key={v.id}
+                      onClick={() => onTabChange(v.id)}
+                      className={cn(
+                        "whitespace-nowrap px-3 sm:px-4 rounded-md text-sm font-medium transition-all",
+                        "hover:bg-background/50",
+                        activeTab === v.id 
+                          ? "bg-background shadow-sm text-primary" 
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {v.nome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <ThemeToggle />
           <Link href="/admin">
             <Button 

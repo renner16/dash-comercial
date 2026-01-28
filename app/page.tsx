@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Header } from '@/components/header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { VendedorDashboard } from '@/components/vendedor-dashboard'
@@ -16,6 +16,7 @@ export default function Home() {
   const [vendedores, setVendedores] = useState<Vendedor[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<string>('geral')
+  const [vendedorTabState, setVendedorTabState] = useState<Record<string, string>>({}) // Estado por vendedor
 
   useEffect(() => {
     fetch('/api/vendedores')
@@ -29,6 +30,10 @@ export default function Home() {
         setLoading(false)
       })
   }, [])
+
+  // Função para exportar backup (será preenchida pelo VendedorDashboard)
+  const exportBackupFnRef = useRef<(() => void) | null>(null)
+  const [exportBackupFn, setExportBackupFn] = useState<(() => void) | null>(null)
 
   // Quando a URL mudar ou houver um hash, verificar se precisa mudar a aba
   useEffect(() => {
@@ -59,6 +64,23 @@ export default function Home() {
     }
   }, [])
 
+  // Detectar vendedor atual baseado na aba ativa
+  const vendedorSelecionado = vendedores.find(v => v.id === activeTab) || null
+  const tabAtualVendedor = vendedorSelecionado ? (vendedorTabState[vendedorSelecionado.id] || 'visao-geral') : 'visao-geral'
+
+  // Limpar função quando mudar de vendedor
+  useEffect(() => {
+    if (!vendedorSelecionado) {
+      exportBackupFnRef.current = null
+      setExportBackupFn(null)
+    } else {
+      // Atualizar função quando mudar para um vendedor
+      if (exportBackupFnRef.current) {
+        setExportBackupFn(() => exportBackupFnRef.current!)
+      }
+    }
+  }, [vendedorSelecionado?.id])
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -75,38 +97,51 @@ export default function Home() {
     )
   }
 
+  const handleExportBackup = () => {
+    const fn = exportBackupFnRef.current || exportBackupFn
+    if (fn) {
+      fn()
+    } else {
+      console.log('Função de exportar backup ainda não está disponível')
+    }
+  }
+
   return (
     <div className="min-h-screen">
-      <Header />
+      <Header 
+        vendedores={vendedores}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
       <main className="container mx-auto px-4 sm:px-8 py-6 sm:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="overflow-x-auto -mx-4 sm:mx-0 pb-2">
-            <TabsList className="inline-flex min-w-full sm:min-w-0 px-4 sm:px-1 h-12 sm:h-11 gap-1 sm:gap-2 bg-muted/50 backdrop-blur-sm">
-              <TabsTrigger 
-                value="geral" 
-                className="whitespace-nowrap px-4 sm:px-6 rounded-lg font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-primary"
-              >
-                Geral
-              </TabsTrigger>
-              {vendedores.map(vendedor => (
-                <TabsTrigger 
-                  key={vendedor.id} 
-                  value={vendedor.id} 
-                  className="whitespace-nowrap px-4 sm:px-6 rounded-lg font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-primary"
-                >
-                  {vendedor.nome}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
-
           <TabsContent value="geral" className="space-y-6">
             <GeralDashboard vendedores={vendedores} />
           </TabsContent>
 
           {vendedores.map(vendedor => (
-            <TabsContent key={vendedor.id} value={vendedor.id} className="space-y-6">
-              <VendedorDashboard vendedor={vendedor} />
+            <TabsContent 
+              key={vendedor.id} 
+              value={vendedor.id} 
+              className="space-y-6"
+            >
+              <VendedorDashboard 
+                vendedor={vendedor} 
+                activeTab={vendedorTabState[vendedor.id] || 'visao-geral'}
+                onTabChange={(tab) => {
+                  setVendedorTabState(prev => ({
+                    ...prev,
+                    [vendedor.id]: tab
+                  }))
+                }}
+                onExportBackupReady={(exportFn) => {
+                  // Armazenar função no ref e atualizar estado apenas se for o vendedor ativo
+                  exportBackupFnRef.current = exportFn
+                  if (vendedor.id === activeTab) {
+                    setExportBackupFn(() => exportFn)
+                  }
+                }}
+              />
             </TabsContent>
           ))}
         </Tabs>
