@@ -1074,16 +1074,23 @@ export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabCha
   }
 
   // Função para exportar backup completo
-  const handleExportarBackup = useCallback(() => {
+  const handleExportarBackup = useCallback(async () => {
     try {
       const vendasSeguras = Array.isArray(vendas) ? vendas : []
       const relatoriosSeguros = Array.isArray(relatorios) ? relatorios : []
       
-      // Carregar checklist e observações do localStorage
-      const checklistDiario = localStorage.getItem(`checklist_${vendedor.id}_diario`) || '[]'
-      const checklistSemanal = localStorage.getItem(`checklist_${vendedor.id}_semanal`) || '[]'
-      const checklistMensal = localStorage.getItem(`checklist_${vendedor.id}_mensal`) || '[]'
-      const observacoes = localStorage.getItem(`observacoes_${vendedor.id}`) || ''
+      // Carregar checklist e observações do banco de dados
+      const [checklistDiarioRes, checklistSemanalRes, checklistMensalRes, observacoesRes] = await Promise.all([
+        fetch(`/api/checklist?vendedorId=${vendedor.id}&modo=diario`),
+        fetch(`/api/checklist?vendedorId=${vendedor.id}&modo=semanal`),
+        fetch(`/api/checklist?vendedorId=${vendedor.id}&modo=mensal`),
+        fetch(`/api/observacoes?vendedorId=${vendedor.id}`)
+      ])
+
+      const checklistDiario = checklistDiarioRes.ok ? await checklistDiarioRes.json() : []
+      const checklistSemanal = checklistSemanalRes.ok ? await checklistSemanalRes.json() : []
+      const checklistMensal = checklistMensalRes.ok ? await checklistMensalRes.json() : []
+      const observacoesData = observacoesRes.ok ? await observacoesRes.json() : { texto: '' }
       const valoresVisiveisState = localStorage.getItem(`valoresVisiveis_${vendedor.id}`) || 'false'
 
       const backup = {
@@ -1096,11 +1103,11 @@ export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabCha
         vendas: vendasSeguras,
         relatorios: relatoriosSeguros,
         checklist: {
-          diario: JSON.parse(checklistDiario),
-          semanal: JSON.parse(checklistSemanal),
-          mensal: JSON.parse(checklistMensal)
+          diario: checklistDiario,
+          semanal: checklistSemanal,
+          mensal: checklistMensal
         },
-        observacoes: observacoes,
+        observacoes: observacoesData.texto || '',
         configuracoes: {
           valoresVisiveis: valoresVisiveisState === 'true'
         }

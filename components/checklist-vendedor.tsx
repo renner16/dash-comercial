@@ -22,56 +22,121 @@ export function ChecklistVendedor({ vendedorId }: ChecklistVendedorProps) {
   const [modo, setModo] = useState<'diario' | 'semanal' | 'mensal'>('diario')
   const [itens, setItens] = useState<ChecklistItem[]>([])
   const [novoItem, setNovoItem] = useState('')
+  const [carregando, setCarregando] = useState(true)
 
-  // Carregar itens do localStorage
+  // Carregar itens do banco de dados
   useEffect(() => {
-    const chave = `checklist_${vendedorId}_${modo}`
-    const dadosSalvos = localStorage.getItem(chave)
-    if (dadosSalvos) {
+    const carregarItens = async () => {
       try {
-        setItens(JSON.parse(dadosSalvos))
+        setCarregando(true)
+        const response = await fetch(`/api/checklist?vendedorId=${vendedorId}&modo=${modo}`)
+        if (response.ok) {
+          const dados = await response.json()
+          setItens(dados.map((item: any) => ({
+            id: item.id,
+            texto: item.texto,
+            concluida: item.concluida,
+            data: item.data
+          })))
+        } else {
+          console.error('Erro ao carregar checklist')
+          setItens([])
+        }
       } catch (error) {
         console.error('Erro ao carregar checklist:', error)
+        setItens([])
+      } finally {
+        setCarregando(false)
       }
-    } else {
-      setItens([])
     }
+
+    carregarItens()
   }, [vendedorId, modo])
 
-  // Salvar itens no localStorage
-  const salvarItens = (novosItens: ChecklistItem[]) => {
-    const chave = `checklist_${vendedorId}_${modo}`
-    localStorage.setItem(chave, JSON.stringify(novosItens))
-    setItens(novosItens)
+  const toggleItem = async (id: string) => {
+    const item = itens.find(i => i.id === id)
+    if (!item) return
+
+    try {
+      const response = await fetch('/api/checklist', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+          concluida: !item.concluida,
+        }),
+      })
+
+      if (response.ok) {
+        const novosItens = itens.map(i =>
+          i.id === id ? { ...i, concluida: !i.concluida } : i
+        )
+        setItens(novosItens)
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar item:', error)
+    }
   }
 
-  const toggleItem = (id: string) => {
-    const novosItens = itens.map(item =>
-      item.id === id ? { ...item, concluida: !item.concluida } : item
-    )
-    salvarItens(novosItens)
-  }
-
-  const adicionarItem = () => {
+  const adicionarItem = async () => {
     if (!novoItem.trim()) return
 
-    const novoItemObj: ChecklistItem = {
-      id: Date.now().toString(),
-      texto: novoItem.trim(),
-      concluida: false,
-      data: new Date().toISOString()
+    try {
+      const response = await fetch('/api/checklist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vendedorId,
+          texto: novoItem.trim(),
+          concluida: false,
+          modo,
+        }),
+      })
+
+      if (response.ok) {
+        const novoItemObj = await response.json()
+        setItens([...itens, {
+          id: novoItemObj.id,
+          texto: novoItemObj.texto,
+          concluida: novoItemObj.concluida,
+          data: novoItemObj.data
+        }])
+        setNovoItem('')
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar item:', error)
     }
-
-    salvarItens([...itens, novoItemObj])
-    setNovoItem('')
   }
 
-  const removerItem = (id: string) => {
-    salvarItens(itens.filter(item => item.id !== id))
+  const removerItem = async (id: string) => {
+    try {
+      const response = await fetch(`/api/checklist?id=${id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setItens(itens.filter(item => item.id !== id))
+      }
+    } catch (error) {
+      console.error('Erro ao remover item:', error)
+    }
   }
 
-  const limparConcluidas = () => {
-    salvarItens(itens.filter(item => !item.concluida))
+  const limparConcluidas = async () => {
+    const itensConcluidas = itens.filter(item => item.concluida)
+    
+    // Deletar todos os itens concluídos
+    await Promise.all(
+      itensConcluidas.map(item => 
+        fetch(`/api/checklist?id=${item.id}`, { method: 'DELETE' })
+      )
+    )
+
+    setItens(itens.filter(item => !item.concluida))
   }
 
   const itensConcluidas = itens.filter(item => item.concluida).length
@@ -110,8 +175,14 @@ export function ChecklistVendedor({ vendedorId }: ChecklistVendedorProps) {
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Adicionar novo item */}
-        <div className="flex gap-2">
+        {carregando ? (
+          <div className="flex items-center justify-center py-8">
+            <span className="text-sm text-muted-foreground">Carregando checklist...</span>
+          </div>
+        ) : (
+          <>
+            {/* Adicionar novo item */}
+            <div className="flex gap-2">
           <input
             type="text"
             value={novoItem}
@@ -187,9 +258,13 @@ export function ChecklistVendedor({ vendedorId }: ChecklistVendedorProps) {
             </Button>
           </div>
         )}
+          </>
+        )}
       </CardContent>
     </Card>
   )
 }
+
+
 
 

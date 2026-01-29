@@ -17,6 +17,7 @@ model Vendedor {
   vendas     Venda[]
   relatorios RelatoriosDiarios[]
   observacoes ObservacoesVendedor?
+  checklist  ChecklistItem[]
   createdAt  DateTime            @default(now())
   updatedAt  DateTime            @updatedAt
 }
@@ -83,4 +84,19 @@ model ObservacoesVendedor {
   updatedAt  DateTime @updatedAt
 
   @@index([vendedorId])
+}
+
+model ChecklistItem {
+  id         String   @id @default(uuid())
+  vendedorId String
+  vendedor   Vendedor @relation(fields: [vendedorId], references: [id], onDelete: Cascade)
+  texto      String
+  concluida  Boolean  @default(false)
+  modo       String   // diario, semanal, mensal
+  data       DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([vendedorId])
+  @@index([modo])
 }
