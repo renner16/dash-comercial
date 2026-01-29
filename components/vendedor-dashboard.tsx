@@ -155,9 +155,11 @@ export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabCha
           paramsGraficos += `&dataInicio=${dataInicio.toISOString()}&dataFim=${dataFim.toISOString()}`
         }
       } else if (tipoVisao === 'anual') {
-        // KPIs e Gráficos: mesmo ano
+        // KPIs: apenas o ano selecionado
         params += `&ano=${ano}`
-        paramsGraficos += `&ano=${ano}`
+
+        // Gráficos: buscar TODOS os dados (sem filtro de ano) para mostrar histórico completo mensal
+        // Não adicionar filtro de ano no paramsGraficos para permitir ver todos os meses de todos os anos
 
         // Período anterior: ano anterior
         paramsPeriodoAnterior += `&ano=${ano - 1}`
@@ -176,7 +178,8 @@ export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabCha
       // Se período do gráfico for "mensal" OU se for "automático" com visão mensal (para relatórios),
       // garantir que os dados sejam sempre buscados como diários (usando dataInicio e dataFim)
       // para poder agrupar corretamente no frontend
-      const precisaDadosDiarios = periodoGrafico === 'mes' || (periodoGrafico === 'auto' && tipoVisao === 'mensal')
+      // NÃO aplicar quando for anual, pois queremos buscar todos os dados (sem filtro de ano)
+      const precisaDadosDiarios = (periodoGrafico === 'mes' || (periodoGrafico === 'auto' && tipoVisao === 'mensal')) && tipoVisao !== 'anual'
       if (precisaDadosDiarios && !paramsGraficos.includes('dataInicio')) {
         // Determinar o range de datas baseado na visão atual
         let dataInicio: Date
@@ -197,9 +200,9 @@ export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabCha
             dataFim = new Date(ano, mes + 2, 0, 23, 59, 59) // 3 meses depois
           }
         } else if (tipoVisao === 'anual' && ano) {
-          // Se visão anual, buscar todos os dias do ano
-          dataInicio = new Date(ano, 0, 1) // 1º de janeiro
-          dataFim = new Date(ano, 11, 31, 23, 59, 59) // 31 de dezembro
+          // Se visão anual, buscar TODOS os dados (sem filtro de ano) para mostrar histórico completo mensal
+          // Esta lógica não será executada porque precisaDadosDiarios é false quando tipoVisao === 'anual'
+          // paramsGraficos já está sem filtro de ano (definido anteriormente)
         } else if (tipoVisao === 'diario' && dia) {
           // Se visão diária, buscar o mês inteiro do dia selecionado
           const dataSelecionada = new Date(dia + 'T00:00:00')
@@ -431,15 +434,17 @@ export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabCha
   }))
 
   // Determinar período real do gráfico para vendas
+  // Quando a visualização for mensal, mostrar dados diários no gráfico
   const periodoReal = periodoGrafico === 'auto'
-    ? (tipoVisao === 'semanal' ? 'semana' : tipoVisao === 'mensal' ? 'mes' : tipoVisao === 'diario' ? 'dia' : tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado' ? 'mes' : 'dia')
+    ? (tipoVisao === 'semanal' ? 'semana' : tipoVisao === 'mensal' ? 'dia' : tipoVisao === 'diario' ? 'dia' : tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado' ? 'mes' : 'dia')
     : periodoGrafico === 'semana' ? 'semana' : periodoGrafico === 'mes' ? 'mes' : 'dia'
 
   // Determinar período real do gráfico para relatórios (Leads e Respostas)
   // Quando o período for mensal, sempre mostrar dados diários
+  // Quando o período for anual, mostrar dados mensais (histórico completo)
   const periodoRealRelatorios = periodoGrafico === 'auto'
-    ? (tipoVisao === 'semanal' ? 'semana' : tipoVisao === 'mensal' ? 'dia' : tipoVisao === 'diario' ? 'dia' : tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado' ? 'dia' : 'dia')
-    : periodoGrafico === 'semana' ? 'semana' : periodoGrafico === 'mes' ? 'dia' : 'dia'
+    ? (tipoVisao === 'semanal' ? 'semana' : tipoVisao === 'mensal' ? 'dia' : tipoVisao === 'diario' ? 'dia' : tipoVisao === 'anual' || tipoVisao === 'total' || tipoVisao === 'personalizado' ? 'mes' : 'dia')
+    : periodoGrafico === 'semana' ? 'semana' : periodoGrafico === 'mes' ? 'mes' : 'dia'
 
   // Filtrar vendas confirmadas dos dados de gráficos
   const vendasConfirmadasGraficos = vendasGraficosSeguras.filter(vendaDeveContar)
@@ -449,8 +454,9 @@ export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabCha
   const chartDataQuantidade = prepararDadosChart(vendasConfirmadasGraficos, 'count', tipoVisao, periodoReal, semana, mes, ano)
 
   // Preparar dados para gráficos de relatórios (usa dados expandidos com período diário quando automático)
-  const chartDataLeads = prepararDadosChartRelatorios(relatoriosGraficosSeguros, 'leadsRecebidos', tipoVisao, periodoRealRelatorios, semana, mes, ano)
-  const chartDataRespostas = prepararDadosChartRelatorios(relatoriosGraficosSeguros, 'respostasEnviadas', tipoVisao, periodoRealRelatorios, semana, mes, ano)
+  // Quando for anual, passar também os dados de vendas para alinhar os anos (incluir 2025 mesmo sem dados de leads)
+  const chartDataLeads = prepararDadosChartRelatorios(relatoriosGraficosSeguros, 'leadsRecebidos', tipoVisao, periodoRealRelatorios, semana, mes, ano, tipoVisao === 'anual' ? vendasConfirmadasGraficos : null)
+  const chartDataRespostas = prepararDadosChartRelatorios(relatoriosGraficosSeguros, 'respostasEnviadas', tipoVisao, periodoRealRelatorios, semana, mes, ano, tipoVisao === 'anual' ? vendasConfirmadasGraficos : null)
 
   // Verificar se o período inclui 2025 (ano atual)
   // Se incluir, filtrar dados para apenas 2025 nas métricas de conversão
@@ -1440,16 +1446,18 @@ export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabCha
       <div className={`grid gap-4 ${tipoVisao === 'total' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <SimpleLineChart
           title={
-            periodoRealRelatorios === 'semana' ? "Leads Recebidos por Semana" :
-              "Leads Recebidos por Dia"
+            periodoRealRelatorios === 'mes' ? "Leads Recebidos por Mês" :
+              periodoRealRelatorios === 'semana' ? "Leads Recebidos por Semana" :
+                "Leads Recebidos por Dia"
           }
           data={chartDataLeads}
           color="#3b82f6"
         />
         <SimpleLineChart
           title={
-            periodoRealRelatorios === 'semana' ? "Respostas Recebidas por Semana" :
-              "Respostas Recebidas por Dia"
+            periodoRealRelatorios === 'mes' ? "Respostas Recebidas por Mês" :
+              periodoRealRelatorios === 'semana' ? "Respostas Recebidas por Semana" :
+                "Respostas Recebidas por Dia"
           }
           data={chartDataRespostas}
           color="#f59e0b"
@@ -2006,8 +2014,12 @@ function prepararDadosChart(
       anos.add(new Date().getFullYear())
     }
 
+    // Para visualização anual, mostrar TODOS os meses de TODOS os anos presentes nos dados
+    // Não filtrar apenas pelo ano selecionado, mas mostrar todo o histórico
+    const anosParaMostrar = Array.from(anos)
+
     // Inicializar TODOS os meses para todos os anos com 0
-    Array.from(anos).forEach(ano => {
+    anosParaMostrar.forEach(ano => {
       for (let mes = 0; mes < 12; mes++) {
         const chave = `${ano}-${mes}`
         dadosPorMesAno[chave] = 0
@@ -2118,8 +2130,11 @@ function prepararDadosChart(
   const dadosPorDia: Record<number, number> = {}
 
   // Determinar o mês/ano para calcular quantos dias tem
+  // Se estiver em modo mensal, usar o mês e ano selecionados
   let diasNoMes = 31
-  if (vendas.length > 0) {
+  if (tipoVisao === 'mensal' && mesSelecionado && anoSelecionado) {
+    diasNoMes = new Date(anoSelecionado, mesSelecionado, 0).getDate()
+  } else if (vendas.length > 0) {
     const primeiraData = new Date(vendas[0].data)
     const mes = primeiraData.getMonth()
     const ano = primeiraData.getFullYear()
@@ -2152,7 +2167,8 @@ function prepararDadosChartRelatorios(
   periodoGrafico: 'dia' | 'semana' | 'mes' = 'dia',
   semanaSelecionada: number | null = null,
   mesSelecionado: number | null = null,
-  anoSelecionado: number | null = null
+  anoSelecionado: number | null = null,
+  vendasParaAlinhar: any[] | null = null // Para alinhar anos quando for anual
 ) {
   // Se período do gráfico for MÊS ou for visão ANUAL/TOTAL/PERSONALIZADO, agrupa por MÊS com ANO
   // CORRIGIDO: Adicionado tipo 'personalizado' para corrigir erro TypeScript no build
@@ -2163,9 +2179,22 @@ function prepararDadosChartRelatorios(
     // Identificar todos os anos presentes nos dados
     const anos = new Set<number>()
     relatorios.forEach(r => {
-      const ano = new Date(r.data).getFullYear()
-      anos.add(ano)
+      if (r && r.data) {
+        const ano = new Date(r.data).getFullYear()
+        anos.add(ano)
+      }
     })
+
+    // Quando for anual e houver vendas para alinhar, incluir também os anos das vendas
+    // Isso garante que o gráfico de leads mostre os mesmos anos do gráfico de faturamento
+    if (tipoVisao === 'anual' && vendasParaAlinhar && Array.isArray(vendasParaAlinhar)) {
+      vendasParaAlinhar.forEach(v => {
+        if (v && v.data) {
+          const ano = new Date(v.data).getFullYear()
+          anos.add(ano)
+        }
+      })
+    }
 
     // Se não houver dados, usar o ano atual
     if (anos.size === 0) {
@@ -2182,11 +2211,13 @@ function prepararDadosChartRelatorios(
 
     // Preencher com os dados reais
     relatorios.forEach(r => {
+      if (!r || !r.data) return
       const data = new Date(r.data)
       const ano = data.getFullYear()
       const mes = data.getMonth()
       const chave = `${ano}-${mes}`
-      dadosPorMesAno[chave] += r[campo]
+      const valor = r[campo] || 0
+      dadosPorMesAno[chave] = (dadosPorMesAno[chave] || 0) + valor
     })
 
     return Object.entries(dadosPorMesAno)
