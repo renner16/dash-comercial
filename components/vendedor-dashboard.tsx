@@ -199,10 +199,6 @@ export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabCha
             dataInicio = new Date(ano, mes - 4, 1) // 3 meses antes
             dataFim = new Date(ano, mes + 2, 0, 23, 59, 59) // 3 meses depois
           }
-        } else if (tipoVisao === 'anual' && ano) {
-          // Se visão anual, buscar TODOS os dados (sem filtro de ano) para mostrar histórico completo mensal
-          // Esta lógica não será executada porque precisaDadosDiarios é false quando tipoVisao === 'anual'
-          // paramsGraficos já está sem filtro de ano (definido anteriormente)
         } else if (tipoVisao === 'diario' && dia) {
           // Se visão diária, buscar o mês inteiro do dia selecionado
           const dataSelecionada = new Date(dia + 'T00:00:00')
