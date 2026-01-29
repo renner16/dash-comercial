@@ -14,33 +14,63 @@ export function ObservacoesVendedor({ vendedorId }: ObservacoesVendedorProps) {
   const [texto, setTexto] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [salvo, setSalvo] = useState(true)
+  const [carregando, setCarregando] = useState(true)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Carregar observações do localStorage
+  // Carregar observações do banco de dados
   useEffect(() => {
-    const chave = `observacoes_${vendedorId}`
-    const dadosSalvos = localStorage.getItem(chave)
-    if (dadosSalvos) {
+    const carregarObservacoes = async () => {
       try {
-        setTexto(dadosSalvos)
-        setSalvo(true)
+        setCarregando(true)
+        const response = await fetch(`/api/observacoes?vendedorId=${vendedorId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setTexto(data.texto || '')
+          setSalvo(true)
+        } else {
+          console.error('Erro ao carregar observações')
+        }
       } catch (error) {
         console.error('Erro ao carregar observações:', error)
+      } finally {
+        setCarregando(false)
       }
     }
+
+    carregarObservacoes()
   }, [vendedorId])
 
-  // Salvar observações no localStorage
-  const salvar = () => {
-    const chave = `observacoes_${vendedorId}`
-    localStorage.setItem(chave, texto)
-    setSalvando(false)
-    setSalvo(true)
-    
-    // Resetar indicador de salvo após 2 segundos
-    setTimeout(() => {
-      setSalvo(false)
-    }, 2000)
+  // Salvar observações no banco de dados
+  const salvar = async () => {
+    try {
+      setSalvando(true)
+      const response = await fetch('/api/observacoes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vendedorId,
+          texto,
+        }),
+      })
+
+      if (response.ok) {
+        setSalvando(false)
+        setSalvo(true)
+        
+        // Resetar indicador de salvo após 2 segundos
+        setTimeout(() => {
+          setSalvo(false)
+        }, 2000)
+      } else {
+        console.error('Erro ao salvar observações')
+        setSalvando(false)
+      }
+    } catch (error) {
+      console.error('Erro ao salvar observações:', error)
+      setSalvando(false)
+    }
   }
 
   // Autosave com debounce
@@ -99,15 +129,23 @@ export function ObservacoesVendedor({ vendedorId }: ObservacoesVendedorProps) {
         </p>
       </CardHeader>
       <CardContent>
-        <Textarea
-          value={texto}
-          onChange={(e) => handleTextoChange(e.target.value)}
-          placeholder="Digite suas observações aqui..."
-          className="min-h-[400px] resize-none"
-        />
+        {carregando ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <span className="text-sm text-muted-foreground">Carregando observações...</span>
+          </div>
+        ) : (
+          <Textarea
+            value={texto}
+            onChange={(e) => handleTextoChange(e.target.value)}
+            placeholder="Digite suas observações aqui..."
+            className="min-h-[400px] resize-none"
+          />
+        )}
       </CardContent>
     </Card>
   )
 }
+
+
 
 
