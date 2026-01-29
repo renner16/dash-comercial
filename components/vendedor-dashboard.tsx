@@ -9,7 +9,7 @@ import { VendasTable } from '@/components/vendas-table'
 import { VendaDialog } from '@/components/venda-dialog'
 import { RelatorioDialog } from '@/components/relatorio-dialog'
 import { LeadsTable } from '@/components/leads-table'
-import { SimpleLineChart } from '@/components/charts'
+import { SimpleLineChart, MultiLineChart } from '@/components/charts'
 import { PeriodSelector } from '@/components/period-selector'
 import { ChecklistVendedor } from '@/components/checklist-vendedor'
 import { ObservacoesVendedor } from '@/components/observacoes-vendedor'
@@ -453,6 +453,87 @@ export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabCha
   // Quando for anual, passar também os dados de vendas para alinhar os anos (incluir 2025 mesmo sem dados de leads)
   const chartDataLeads = prepararDadosChartRelatorios(relatoriosGraficosSeguros, 'leadsRecebidos', tipoVisao, periodoRealRelatorios, semana, mes, ano, tipoVisao === 'anual' ? vendasConfirmadasGraficos : null)
   const chartDataRespostas = prepararDadosChartRelatorios(relatoriosGraficosSeguros, 'respostasEnviadas', tipoVisao, periodoRealRelatorios, semana, mes, ano, tipoVisao === 'anual' ? vendasConfirmadasGraficos : null)
+
+  // Preparar dados combinados para o gráfico único
+  const prepararDadosCombinados = () => {
+    // Criar um mapa para combinar todos os dados por nome (data/período)
+    const dadosMap = new Map<string, { name: string; quantidade: number; leads: number; respostas: number }>()
+    
+    // Adicionar dados de quantidade
+    chartDataQuantidade.forEach(item => {
+      dadosMap.set(item.name, {
+        name: item.name,
+        quantidade: item.value,
+        leads: 0,
+        respostas: 0
+      })
+    })
+    
+    // Adicionar dados de leads
+    chartDataLeads.forEach(item => {
+      const existente = dadosMap.get(item.name)
+      if (existente) {
+        existente.leads = item.value
+      } else {
+        dadosMap.set(item.name, {
+          name: item.name,
+          quantidade: 0,
+          leads: item.value,
+          respostas: 0
+        })
+      }
+    })
+    
+    // Adicionar dados de respostas
+    chartDataRespostas.forEach(item => {
+      const existente = dadosMap.get(item.name)
+      if (existente) {
+        existente.respostas = item.value
+      } else {
+        dadosMap.set(item.name, {
+          name: item.name,
+          quantidade: 0,
+          leads: 0,
+          respostas: item.value
+        })
+      }
+    })
+    
+    // Converter para array e ordenar
+    // Usar a mesma ordenação dos gráficos individuais (já vêm ordenados)
+    // Pegar todos os nomes únicos e ordenar
+    const todosNomes = new Set<string>()
+    chartDataQuantidade.forEach(item => todosNomes.add(item.name))
+    chartDataLeads.forEach(item => todosNomes.add(item.name))
+    chartDataRespostas.forEach(item => todosNomes.add(item.name))
+    
+    // Ordenar os nomes (se forem números, ordenar numericamente, senão alfabeticamente)
+    const nomesOrdenados = Array.from(todosNomes).sort((a, b) => {
+      const aNum = parseInt(a)
+      const bNum = parseInt(b)
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return aNum - bNum
+      }
+      return a.localeCompare(b)
+    })
+    
+    // Retornar dados na ordem correta
+    return nomesOrdenados.map(name => {
+      const dados = dadosMap.get(name)
+      if (dados) {
+        return dados
+      }
+      // Se não existir, criar com zeros
+      return {
+        name,
+        quantidade: 0,
+        leads: 0,
+        respostas: 0
+      }
+    })
+  }
+  
+  const chartDataCombinado = prepararDadosCombinados()
 
   // Verificar se o período inclui 2025 (ano atual)
   // Se incluir, filtrar dados para apenas 2025 nas métricas de conversão
@@ -1359,6 +1440,18 @@ export function VendedorDashboard({ vendedor, activeTab: activeTabProp, onTabCha
           proximaFaixa={dadosProjecao.proximaFaixa}
         />
       )}
+
+      {/* Gráfico Combinado - Todas as Métricas */}
+      <div className="w-full">
+        <MultiLineChart
+          title={
+            periodoReal === 'mes' ? "Visão Geral por Mês" :
+              periodoReal === 'semana' ? "Visão Geral por Semana" :
+                "Visão Geral por Dia"
+          }
+          data={chartDataCombinado}
+        />
+      </div>
 
       {/* Ações */}
       <div className="flex flex-wrap gap-2">
